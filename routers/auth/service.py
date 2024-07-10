@@ -18,10 +18,10 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 http_bearer = HTTPBearer()
 
-with open(r"C:\Users\vfaddey\PycharmProjects\telePosting\routers\auth\keys\private.pem") as f:
+with open(r"C:\Users\Пользователь\Documents\telePosting\BackEnd\TelePostingBack\routers\auth\keys\private.pem") as f:
     PRIVATE_KEY = f.read()
 
-with open(r"C:\Users\vfaddey\PycharmProjects\telePosting\routers\auth\keys\public.pem") as f:
+with open(r"C:\Users\Пользователь\Documents\telePosting\BackEnd\TelePostingBack\routers\auth\keys\public.pem") as f:
     PUBLIC_KEY = f.read()
 
 

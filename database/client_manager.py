@@ -1,6 +1,4 @@
 from motor.motor_asyncio import AsyncIOMotorClient
-from enum import StrEnum
-
 
 mongo_url = 'mongodb://localhost:27017'
 mongo_db_name = 'telegram_posts'
