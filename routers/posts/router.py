@@ -11,8 +11,13 @@ from observers.publish_observer import PublishPostObserver
 from observers.save_observer import SavePostObserver
 from routers.auth.models import User
 from routers.auth.service import get_current_user
-from routers.posts.schemas import Post
+from routers.posts.schemas import Post, AddPost
 from subjects.post_publisher import PostPublisher
+
+from .post_service import PostService
+from .post_repository import PostRepository
+
+from redis import Redis
 
 router = APIRouter(prefix='/create_post', tags=['posts'])
 
@@ -21,11 +26,16 @@ db = client.telegram_posts
 fs = AsyncIOMotorGridFSBucket(db)
 posts_collection = db.posts
 
+post_repository = PostRepository(posts_collection, fs)
+post_service = PostService(post_repository, Redis())
 
 post_publisher = PostPublisher()
 save_post_observer = SavePostObserver(posts_collection)
 post_publisher.attach(save_post_observer)
 save_post_observer.attach(PublishPostObserver())
+
+
+
 
 
 @router.post("/", response_model=Post)
@@ -36,7 +46,6 @@ async def create_post(current_user: User = Depends(get_current_user),
                       delete_time: Optional[datetime.datetime] = Form(None),
                       publish_now: bool = Form(False),
                       photos: List[UploadFile] = File(None)):
-    print(current_user)
     photo_ids = []
     if photos:
         for photo in photos:
@@ -62,6 +71,20 @@ async def create_post(current_user: User = Depends(get_current_user),
 
     await post_publisher.create_post(post)
     return Post(**post)
+
+
+@router.post("/test", response_model=Post)
+async def create_post_test(current_user: User = Depends(get_current_user),
+                      text: Optional[str] = Form(None),
+                      buttons: str = Form(None),
+                      publish_time: Optional[datetime.datetime] = Form(None),
+                      delete_time: Optional[datetime.datetime] = Form(None),
+                      publish_now: bool = Form(False),
+                      photos: List[UploadFile] = File(None)):
+    
+    add_post = AddPost(text=text, buttons=buttons, publish_time=publish_time, publish_now=publish_now, delete_time=delete_time, photos=photos)
+    post = await post_service.add_post(add_post)
+    return post
 
 
 @router.post("/uploadfile")
