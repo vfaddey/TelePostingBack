@@ -23,7 +23,7 @@ class AddPost(BaseModel):
     publish_now: Optional[bool] = None
     delete_time: Optional[datetime.datetime] = None
     photos: Optional[list[UploadFile]] = None
-    owner_username: str
+    owner_id: str
 
 
 async def parse_post_data(
@@ -42,7 +42,7 @@ async def parse_post_data(
         delete_time=delete_time,
         publish_now=publish_now,
         photos=photos,
-        owner_username=current_user.username
+        owner_id=current_user.id
     )
 
 

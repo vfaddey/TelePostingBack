@@ -7,12 +7,9 @@ import datetime
 import json
 from starlette.responses import JSONResponse
 
-from observers.publish_observer import PublishPostObserver
-from observers.save_observer import SavePostObserver
 from routers.auth.models import User
 from routers.auth.service import get_current_user
 from routers.posts.schemas import Post, AddPost, parse_post_data
-from subjects.post_publisher import PostPublisher
 
 from .post_service import PostService
 from .post_repository import PostRepository
@@ -28,11 +25,6 @@ posts_collection = db.posts
 
 post_repository = PostRepository(posts_collection, fs)
 post_service = PostService(post_repository, Redis())
-
-post_publisher = PostPublisher()
-save_post_observer = SavePostObserver(posts_collection)
-post_publisher.attach(save_post_observer)
-save_post_observer.attach(PublishPostObserver())
 
 
 @router.post("/", response_model=Post)
@@ -68,7 +60,7 @@ async def upload_file(file: UploadFile = File(...)):
                 "delete_time": None,
                 "posted": False
             }
-            await post_publisher.create_post(post_data)
+            # await post_publisher.create_post(post_data)
             documents.append(post_data)
 
         return JSONResponse(status_code=200, content={"message": "File processed successfully"})

@@ -4,7 +4,7 @@ from database.client_manager import get_users_collection
 from routers.auth.models import User
 from routers.auth.service import get_current_user
 from routers.bots.schemas import AddBot, ChangeActiveBot
-from telegram.bot_manager import bot_manager
+from routers.posts.telegram.bot_manager import bot_manager
 
 router = APIRouter(prefix='/bots', tags=['bots'])
 
