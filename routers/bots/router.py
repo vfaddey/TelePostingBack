@@ -4,7 +4,7 @@ from database.client_manager import get_users_collection
 from routers.auth.models import User
 from routers.auth.service import get_current_user
 from routers.bots.schemas import AddBot, ChangeActiveBot
-from routers.posts.telegram.bot_manager import bot_manager
+from routers.posts.telegram.post_publisher import bot_manager
 
 router = APIRouter(prefix='/bots', tags=['bots'])
 
@@ -34,7 +34,7 @@ async def add_bot(request: AddBot = Body(...),
                                               }
                                           }
                                       }, upsert=True)
-    await bot_manager.add_bot(request.api_token)
+    bot_manager.add_bot(request.api_token)
 
     return request
 
@@ -75,12 +75,15 @@ async def change_bot(request: ChangeActiveBot,
         if bot['api_token'] == request.api_token:
             bot['active'] = True
 
-    await users_collection.update_one(
+    result = await users_collection.update_one(
         {'username': username},
         {'$set': {'bots': bots}}
     )
-
-    return {'message': 'ok', 'active_bot': request.api_token}
+    if result.modified_count > 0:
+        bot_manager.add_bot(request.api_token)
+        return {'message': 'ok', 'active_bot': request.api_token}
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Не получилось обновить данные')
 
 
 @router.delete('/{api_token}')
@@ -108,11 +111,13 @@ async def delete_bot(api_token: str,
     else:
         res = {'message': 'ok'}
 
-    await users_collection.update_one({'username': current_user.username},
+    result = await users_collection.update_one({'username': current_user.username},
                                       {
                                           '$set': {
                                               'bots': bots
                                           }
                                       }
                                       )
+    if result.modified_count > 0:
+        bot_manager.delete_bot(api_token)
     return res
