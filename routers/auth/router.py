@@ -1,17 +1,18 @@
 from datetime import timedelta
 
-import jwt
+
 from fastapi import Depends, HTTPException, status, APIRouter
 from fastapi.security import OAuth2PasswordRequestForm
-from jose import JWTError
+from jose import JWTError, jwt
 from motor.motor_asyncio import AsyncIOMotorCollection
 
 from database.client_manager import get_users_collection
 from .models import User
-from .schemas import UserCreate, Token
+from .schemas import UserCreate, Token, RefreshTokenRequest
 from .service import authenticate_user, create_access_token, get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES, \
     REFRESH_TOKEN_EXPIRE_DAYS, create_refresh_token, PUBLIC_KEY, ALGORITHM
 from .utils import hash_password
+from bson import ObjectId
 
 router = APIRouter(prefix='/auth', tags=['auth'])
 
@@ -54,13 +55,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 
-@router.post("/refresh", response_model=Token)
-async def refresh_token(token: str,
+@router.post("/refresh")
+async def refresh_token(request: RefreshTokenRequest,
                         users_collection: AsyncIOMotorCollection = Depends(get_users_collection)):
+    token = request.token
     try:
         payload = jwt.decode(token, PUBLIC_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        id: str = payload.get("sub")
+        if id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",
@@ -72,7 +74,7 @@ async def refresh_token(token: str,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    user = await users_collection.find_one({"username": username})
+    user = await users_collection.find_one({"_id": ObjectId(id)})
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

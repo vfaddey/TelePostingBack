@@ -20,4 +20,9 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
+    sub: str
     username: str | None = None
+    email: EmailStr
+
+class RefreshTokenRequest(BaseModel):
+    token: str
