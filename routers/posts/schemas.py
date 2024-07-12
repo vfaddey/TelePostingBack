@@ -14,6 +14,7 @@ class Post(BaseModel):
     publish_now: Optional[bool]
     delete_time: Optional[datetime.datetime]
     photos: Optional[List[str]]
+    owner_id: Optional[str] = None
 
 
 class AddPost(BaseModel):
@@ -23,7 +24,7 @@ class AddPost(BaseModel):
     publish_now: Optional[bool] = None
     delete_time: Optional[datetime.datetime] = None
     photos: Optional[list[UploadFile]] = None
-    owner_id: str
+    owner_id: Optional[str] = None
 
 
 async def parse_post_data(
