@@ -26,7 +26,8 @@ class PostRepository:
             "publish_now": add_post.publish_now,
             "publish_time": add_post.publish_time,
             "delete_time": add_post.delete_time,
-            "posted": False
+            "posted": False,
+            "owner_username": add_post.owner_username
         }
 
         result = await self.posts_collection.insert_one(post)

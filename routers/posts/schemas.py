@@ -1,7 +1,9 @@
 import datetime
-from fastapi import Form, File, UploadFile
+from fastapi import Form, File, UploadFile, Depends
 from typing import Optional, List
 from pydantic import BaseModel
+from routers.auth.models import User
+from routers.auth.service import get_current_user
 
 
 class Post(BaseModel):
@@ -21,6 +23,7 @@ class AddPost(BaseModel):
     publish_now: Optional[bool] = None
     delete_time: Optional[datetime.datetime] = None
     photos: Optional[list[UploadFile]] = None
+    owner_username: str
 
 
 async def parse_post_data(
@@ -29,7 +32,8 @@ async def parse_post_data(
     publish_time: Optional[datetime.datetime] = Form(None),
     delete_time: Optional[datetime.datetime] = Form(None),
     publish_now: bool = Form(False),
-    photos: List[UploadFile] = File(None)
+    photos: List[UploadFile] = File(None),
+    current_user: User = Depends(get_current_user)
 ):
     return AddPost(
         text=text,
@@ -37,7 +41,8 @@ async def parse_post_data(
         publish_time=publish_time,
         delete_time=delete_time,
         publish_now=publish_now,
-        photos=photos
+        photos=photos,
+        owner_username=current_user.username
     )
 
 

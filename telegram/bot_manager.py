@@ -2,14 +2,16 @@ import threading
 
 import telebot
 from telebot.apihelper import ApiTelegramException
+from motor.motor_asyncio import AsyncIOMotorCollection
 
 
 class BotManager:
     def __init__(self):
         self.bots = {}
         self.threads = {}
+        self.users_tokens = {}
 
-    async def add_bot(self, api_key):
+    async def add_bot(self, api_key: str):
         if api_key not in self.bots:
             if self._check_bot(api_key):
                 bot = telebot.TeleBot(api_key)
@@ -36,6 +38,22 @@ class BotManager:
 
     def get_bot(self, api_key):
         return self.bots.get(api_key, None)
+    
+    async def load_all_bots(self, users_collection: AsyncIOMotorCollection):
+        result = await users_collection.find( {
+                                                        "bots": {
+                                                            "$elemMatch": {
+                                                                "active": True
+                                                            }
+                                                        }
+                                                    }
+                                                    )
+        for user in result:
+            if user['bots']:
+                for bot in user['bots']:
+                    if bot['active']:
+                        await self.add_bot(bot['api_token'])
+        
 
     def _check_bot(self, api_key):
         try:

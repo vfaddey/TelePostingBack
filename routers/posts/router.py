@@ -36,10 +36,7 @@ save_post_observer.attach(PublishPostObserver())
 
 
 @router.post("/", response_model=Post)
-async def create_post_test(current_user: User = Depends(get_current_user),
-                           add_post: AddPost = Depends(parse_post_data)):
-    
-    # add_post = AddPost(text=text, buttons=buttons, publish_time=publish_time, publish_now=publish_now, delete_time=delete_time, photos=photos)
+async def create_post(add_post: AddPost = Depends(parse_post_data)):
     post = await post_service.add_post(add_post)
     return post
 
@@ -82,6 +79,18 @@ async def upload_file(file: UploadFile = File(...)):
 @router.get('/', response_model=list[Post])
 async def get_posts(current_user: User = Depends(get_current_user)):
     pass
+
+
+@router.get('/{post_id}', response_model=Post)
+async def get_post(post_id: str,
+                   current_user: User = Depends(get_current_user)):
+    pass
+
+
+@router.delete('/{post_id}')
+async def delete_post(post_id: str,
+                      current_user: User = Depends(get_current_user)):
+    pass 
 
 
 @router.put('/', response_model=Post)
