@@ -1,4 +1,5 @@
 import datetime
+import json
 from fastapi import Form, File, UploadFile, Depends
 from typing import Optional, List
 from pydantic import BaseModel
@@ -15,11 +16,12 @@ class Post(BaseModel):
     delete_time: Optional[datetime.datetime]
     photos: Optional[List[str]]
     owner_id: Optional[str] = None
+    posted: Optional[bool] = None
 
 
 class AddPost(BaseModel):
     text: Optional[str] = None
-    buttons: Optional[List[dict]] = None
+    buttons: Optional[str] = None
     publish_time: Optional[datetime.datetime] = None
     publish_now: Optional[bool] = None
     delete_time: Optional[datetime.datetime] = None

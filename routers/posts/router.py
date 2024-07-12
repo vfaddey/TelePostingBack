@@ -3,6 +3,7 @@ import pandas as pd
 from fastapi import Form, File, UploadFile, HTTPException, APIRouter, Depends
 from typing import List, Optional
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
+from pymongo.errors import ServerSelectionTimeoutError
 import datetime
 import json
 from starlette.responses import JSONResponse
@@ -16,12 +17,15 @@ from .post_repository import PostRepository
 
 from redis import Redis
 
+from .telegram.post_publisher import bot_manager
+
 router = APIRouter(prefix='/create_post', tags=['posts'])
 
 client = AsyncIOMotorClient("mongodb://localhost:27017")
 db = client.telegram_posts
 fs = AsyncIOMotorGridFSBucket(db)
 posts_collection = db.posts
+users_collection = db.users
 
 post_repository = PostRepository(posts_collection, fs)
 post_service = PostService(post_repository, Redis())

@@ -1,20 +1,22 @@
 import threading
 
-import telebot
+from telebot import TeleBot
 from telebot.apihelper import ApiTelegramException
 from motor.motor_asyncio import AsyncIOMotorCollection
 
 
+
 class BotManager:
-    def __init__(self):
+    def __init__(self, users_collection):
         self.bots = {}
         self.threads = {}
-        self.users_tokens = {}
+        self.users_collection = users_collection
+        self.load_all_bots()
 
-    async def add_bot(self, api_key: str):
+    def add_bot(self, api_key: str):
         if api_key not in self.bots:
             if self._check_bot(api_key):
-                bot = telebot.TeleBot(api_key)
+                bot = TeleBot(api_key)
                 self.bots[api_key] = bot
                 thread = threading.Thread(target=self._start_bot, args=(bot,))
                 self.threads[api_key] = thread
@@ -30,7 +32,9 @@ class BotManager:
             bot.stop_polling()
             del self.bots[api_key]
             await self.threads[api_key].join()
-            del self.threads[api_key]
+            if api_key in self.threads:
+                self.threads[api_key].join()
+                del self.threads[api_key]
             print(f"Bot with API key {api_key} has been stopped.")
         else:
             print(f"No bot found with API key {api_key}.")
@@ -39,31 +43,31 @@ class BotManager:
     def get_bot(self, api_key):
         return self.bots.get(api_key, None)
     
-    async def load_all_bots(self, users_collection: AsyncIOMotorCollection):
-        result = await users_collection.find( {
-                                                        "bots": {
-                                                            "$elemMatch": {
-                                                                "active": True
-                                                            }
-                                                        }
-                                                    }
-                                                    )
+    def load_all_bots(self):
+        result = self.users_collection.find( {
+                                            "bots": {
+                                                "$elemMatch": {
+                                                    "active": True
+                                                }
+                                            }
+                                        }
+                                        )
         for user in result:
             if user['bots']:
                 for bot in user['bots']:
                     if bot['active']:
-                        await self.add_bot(bot['api_token'])
+                        self.add_bot(bot['api_token'])
         
 
     def _check_bot(self, api_key):
         try:
-            bot = telebot.TeleBot(api_key)
+            bot = TeleBot(api_key)
             bot.get_me()
             return True
         except ApiTelegramException:
             return False
 
-    async def _start_bot(self, bot):
+    def _start_bot(self, bot):
         setup_handlers(bot)
         bot.polling()
 
@@ -88,6 +92,3 @@ class InvalidBotKeyException(Exception):
 
 class BotAlreadyWorksException(Exception):
     pass
-
-
-bot_manager = BotManager()

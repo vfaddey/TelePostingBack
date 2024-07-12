@@ -1,7 +1,8 @@
 from .schemas import Post, AddPost
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorGridFSBucket
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
 import json
+from bson import ObjectId
 
 
 class PostRepository:
@@ -27,14 +28,13 @@ class PostRepository:
             "publish_time": add_post.publish_time,
             "delete_time": add_post.delete_time,
             "posted": False,
-            "owner_username": add_post.owner_username
+            "owner_id": add_post.owner_id
         }
 
         result = await self.posts_collection.insert_one(post)
         if result.inserted_id:
             del post['_id']
             post['id'] = str(result.inserted_id)
-        print(post)
         return Post(**post)
 
 
@@ -47,9 +47,25 @@ class PostRepository:
             await grid_in.close()
             photo_ids.append(grid_in._id)
         return photo_ids
+    
+    async def get_post(self, post_id: ObjectId) -> Post:
+        result = await self.posts_collection.find_one({'_id': post_id})
+        if result:
+            return Post(**result)
+        raise HTTPException('Не удалось найти пост')
 
     async def update_post(self, post_id, post: Post):
         pass
 
     async def delete_post(self, post_id):
         pass
+
+    async def mark_as_posted(self, post_id) -> bool:
+        result = await self.posts_collection.update_one({'_id': post_id},
+                                                        {
+                                                            '$set': {
+                                                                'posted': True
+                                                            }
+                                                        })
+        return result.matched_count > 0
+
