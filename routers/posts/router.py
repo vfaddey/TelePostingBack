@@ -11,7 +11,7 @@ from observers.publish_observer import PublishPostObserver
 from observers.save_observer import SavePostObserver
 from routers.auth.models import User
 from routers.auth.service import get_current_user
-from routers.posts.schemas import Post, AddPost
+from routers.posts.schemas import Post, AddPost, parse_post_data
 from subjects.post_publisher import PostPublisher
 
 from .post_service import PostService
@@ -35,54 +35,11 @@ post_publisher.attach(save_post_observer)
 save_post_observer.attach(PublishPostObserver())
 
 
-
-
-
 @router.post("/", response_model=Post)
-async def create_post(current_user: User = Depends(get_current_user),
-                      text: Optional[str] = Form(None),
-                      buttons: str = Form(None),
-                      publish_time: Optional[datetime.datetime] = Form(None),
-                      delete_time: Optional[datetime.datetime] = Form(None),
-                      publish_now: bool = Form(False),
-                      photos: List[UploadFile] = File(None)):
-    photo_ids = []
-    if photos:
-        for photo in photos:
-            content = await photo.read()
-            grid_in = fs.open_upload_stream(photo.filename)
-            await grid_in.write(content)
-            await grid_in.close()
-            photo_ids.append(grid_in._id)
-
-    button_list = []
-    if buttons:
-        button_list = json.loads(buttons)
-
-    post = {
-        "text": text,
-        "photos": [str(x) for x in photo_ids],
-        "buttons": button_list,
-        "publish_now": publish_now,
-        "publish_time": publish_time,
-        "delete_time": delete_time,
-        "posted": False
-    }
-
-    await post_publisher.create_post(post)
-    return Post(**post)
-
-
-@router.post("/test", response_model=Post)
 async def create_post_test(current_user: User = Depends(get_current_user),
-                      text: Optional[str] = Form(None),
-                      buttons: str = Form(None),
-                      publish_time: Optional[datetime.datetime] = Form(None),
-                      delete_time: Optional[datetime.datetime] = Form(None),
-                      publish_now: bool = Form(False),
-                      photos: List[UploadFile] = File(None)):
+                           add_post: AddPost = Depends(parse_post_data)):
     
-    add_post = AddPost(text=text, buttons=buttons, publish_time=publish_time, publish_now=publish_now, delete_time=delete_time, photos=photos)
+    # add_post = AddPost(text=text, buttons=buttons, publish_time=publish_time, publish_now=publish_now, delete_time=delete_time, photos=photos)
     post = await post_service.add_post(add_post)
     return post
 
@@ -120,3 +77,13 @@ async def upload_file(file: UploadFile = File(...)):
         return JSONResponse(status_code=200, content={"message": "File processed successfully"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error inserting data into MongoDB: {str(e)}")
+    
+
+@router.get('/', response_model=list[Post])
+async def get_posts(current_user: User = Depends(get_current_user)):
+    pass
+
+
+@router.put('/', response_model=Post)
+async def update_post(current_user: User = Depends(get_current_user)):
+    pass
