@@ -1,15 +1,13 @@
-import threading
-
 from telebot import TeleBot
 from telebot.apihelper import ApiTelegramException
-from motor.motor_asyncio import AsyncIOMotorCollection
-
+import multiprocessing
 
 
 class BotManager:
     def __init__(self, users_collection):
         self.bots = {}
-        self.threads = {}
+        self.processes = {}
+        self.terminate_flags = {}
         self.users_collection = users_collection
         self.load_all_bots()
 
@@ -18,36 +16,58 @@ class BotManager:
             if self._check_bot(api_key):
                 bot = TeleBot(api_key)
                 self.bots[api_key] = bot
-                thread = threading.Thread(target=self._start_bot, args=(bot,))
-                self.threads[api_key] = thread
-                thread.start()
+
+                terminate_flag = multiprocessing.Event()
+                self.terminate_flags[api_key] = terminate_flag
+
+                process = multiprocessing.Process(target=self.bot_polling_process, args=(api_key, terminate_flag))
+                self.processes[api_key] = process
+                process.start()
             else:
                 raise InvalidBotKeyException('Неверный API ключ для бота')
         else:
             raise BotAlreadyWorksException('Такой бот уже работает')
 
     async def stop_bot(self, api_key):
-        bot = self.get_bot(api_key)
-        if bot:
+        if api_key in self.bots:
+            bot = self.bots[api_key]
+            bot.remove_webhook()
             bot.stop_polling()
+
+            self.terminate_flags[api_key].set()
+            self.processes[api_key].terminate()
+            self.processes[api_key].join()
+
+            del self.processes[api_key]
+            del self.terminate_flags[api_key]
             del self.bots[api_key]
-            await self.threads[api_key].join()
-            if api_key in self.threads:
-                self.threads[api_key].join()
-                del self.threads[api_key]
+
             print(f"Bot with API key {api_key} has been stopped.")
         else:
             print(f"No bot found with API key {api_key}.")
-    
+
+    @staticmethod
+    def bot_polling_process(api_key, terminate_flag):
+        bot = TeleBot(api_key)
+        setup_handlers(bot)
+
+        while not terminate_flag.is_set():
+            try:
+                bot.polling(none_stop=True, timeout=60)
+            except Exception as e:
+                print(f"Exception occurred: {e}")
+                bot.stop_polling()
+                break
+
+
     def load_all_bots(self):
-        result = self.users_collection.find( {
-                                            "bots": {
-                                                "$elemMatch": {
-                                                    "active": True
-                                                }
-                                            }
-                                        }
-                                        )
+        result = self.users_collection.find({
+            "bots": {
+                "$elemMatch": {
+                    "active": True
+                }
+            }
+        })
         for user in result:
             if user['bots']:
                 for bot in user['bots']:
@@ -64,10 +84,6 @@ class BotManager:
             return True
         except ApiTelegramException:
             return False
-
-    def _start_bot(self, bot):
-        setup_handlers(bot)
-        bot.polling()
 
 
 def setup_handlers(bot):

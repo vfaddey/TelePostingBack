@@ -71,7 +71,10 @@ async def change_bot(request: ChangeActiveBot,
     for bot in bots:
         bot['active'] = False
 
+    prev_token = ''
     for bot in bots:
+        if bot_manager.get_bot(bot['api_token']):
+            prev_token = bot['api_token']
         if bot['api_token'] == request.api_token:
             bot['active'] = True
 
@@ -80,6 +83,8 @@ async def change_bot(request: ChangeActiveBot,
         {'$set': {'bots': bots}}
     )
     if result.modified_count > 0:
+        if len(prev_token) > 1:
+            await bot_manager.stop_bot(prev_token)
         bot_manager.add_bot(request.api_token)
         return {'message': 'ok', 'active_bot': request.api_token}
     else:
@@ -119,5 +124,5 @@ async def delete_bot(api_token: str,
                                       }
                                       )
     if result.modified_count > 0:
-        bot_manager.delete_bot(api_token)
+        await bot_manager.stop_bot(api_token)
     return res
