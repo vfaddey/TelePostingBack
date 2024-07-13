@@ -38,10 +38,6 @@ class BotManager:
             print(f"Bot with API key {api_key} has been stopped.")
         else:
             print(f"No bot found with API key {api_key}.")
-
-
-    def get_bot(self, api_key):
-        return self.bots.get(api_key, None)
     
     def load_all_bots(self):
         result = self.users_collection.find( {
@@ -57,7 +53,9 @@ class BotManager:
                 for bot in user['bots']:
                     if bot['active']:
                         self.add_bot(bot['api_token'])
-        
+
+    def get_bot(self, api_key):
+        return self.bots.get(api_key, None)
 
     def _check_bot(self, api_key):
         try:
