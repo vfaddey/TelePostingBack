@@ -10,11 +10,12 @@ from routers.auth.service import get_current_user
 class Post(BaseModel):
     id: Optional[str] = None
     text: Optional[str]
-    buttons: Optional[List[dict]]
+    buttons: Optional[list[dict]]
     publish_time: Optional[datetime.datetime]
     publish_now: Optional[bool]
     delete_time: Optional[datetime.datetime]
-    photos: Optional[List[str]]
+    photo_ids: Optional[list[str]]
+    photo_urls: Optional[list[str]]
     owner_id: Optional[str] = None
     posted: Optional[bool] = None
 
@@ -26,6 +27,7 @@ class AddPost(BaseModel):
     publish_now: Optional[bool] = None
     delete_time: Optional[datetime.datetime] = None
     photos: Optional[list[UploadFile]] = None
+    photo_urls: Optional[list[str]] = None
     owner_id: Optional[str] = None
 
 

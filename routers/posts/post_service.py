@@ -42,6 +42,8 @@ class PostService:
         return post
 
     async def schedule_post(self, post_id: str, user_id: str, publish_time: datetime):
+        if publish_time.tzinfo is None:
+            publish_time = publish_time.replace(tzinfo=timezone.utc)
         delay = (publish_time - datetime.now(timezone.utc)).total_seconds()
         self.broker.zadd('post_schedule', {post_id: publish_time.timestamp()})
         

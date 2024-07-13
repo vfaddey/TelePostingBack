@@ -10,16 +10,14 @@ import pymongo
 
 client = pymongo.MongoClient('mongodb://localhost:27017')
 users_collection = client['telegram_posts']['users']
+bot_manager = BotManager(users_collection)
+
 
 client = AsyncIOMotorClient("mongodb://localhost:27017")
 db = client.telegram_posts
 fs = AsyncIOMotorGridFSBucket(db)
 posts_collection = db.posts
 ausers_collection = db.users
-
-bot_manager = BotManager(users_collection)
-
-
 
 
 class PostPublisher:

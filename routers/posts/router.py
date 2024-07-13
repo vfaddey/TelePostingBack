@@ -38,7 +38,8 @@ async def create_post(add_post: AddPost = Depends(parse_post_data)):
 
 
 @router.post("/uploadfile")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(current_user: User = Depends(get_current_user),
+                      file: UploadFile = File(...)):
     if not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="Invalid file format. Only .xlsx and .xls are supported.")
 
@@ -48,7 +49,7 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error reading file: {str(e)}")
 
-    expected_columns = {'fact', 'url', 'date'}
+    expected_columns = {'text', 'url', 'date'}
     if not expected_columns.issubset(data.columns):
         raise HTTPException(status_code=400, detail=f"Missing one of the required columns: {expected_columns}")
 
@@ -56,16 +57,18 @@ async def upload_file(file: UploadFile = File(...)):
         documents = []
         for _, row in data.iterrows():
             post_data = {
-                "text": row['fact'],
-                "photos": [row['url']],
-                "buttons": [],
+                "text": row['text'],
+                "photo_urls": [row['url']],
+                "buttons": '[]',
                 "publish_now": False,
-                "publish_time": pd.to_datetime(row['date']),
+                "publish_time": pd.to_datetime(row['date']).to_pydatetime(),
                 "delete_time": None,
-                "posted": False
+                "owner_id": current_user.id
             }
-            # await post_publisher.create_post(post_data)
-            documents.append(post_data)
+            post = AddPost(**post_data)
+            documents.append(post)
+        for post in documents:
+            await post_service.add_post(post)
 
         return JSONResponse(status_code=200, content={"message": "File processed successfully"})
     except Exception as e:

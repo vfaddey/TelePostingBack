@@ -22,7 +22,8 @@ class PostRepository:
 
         post = {
             "text": add_post.text,
-            "photos": [str(x) for x in photo_ids],
+            "photo_ids": [str(x) for x in photo_ids],
+            "photo_urls": add_post.photo_urls,
             "buttons": button_list,
             "publish_now": add_post.publish_now,
             "publish_time": add_post.publish_time,
@@ -47,6 +48,15 @@ class PostRepository:
             await grid_in.close()
             photo_ids.append(grid_in._id)
         return photo_ids
+    
+    async def get_photos(self, photo_ids: list[str]):
+        photos = []
+        async for photo_id in photo_ids:
+            photo_data = bytearray()
+            async for chunk in self.fs.open_download_stream(photo_id):
+                photo_data.extend(chunk)
+            photos.append(photo_data)
+        return photos
     
     async def get_post(self, post_id: ObjectId) -> Post:
         result = await self.posts_collection.find_one({'_id': post_id})
