@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from routers.posts.router import router as posts_router
 from routers.auth.router import router as auth_router
-from routers.bots.router import router as bots_router
+from routers.telegram.bots.router import router as bots_router
 
 app = FastAPI()
 app.include_router(posts_router)

@@ -17,7 +17,7 @@ from .post_repository import PostRepository
 
 from redis import Redis
 
-from .telegram.post_publisher import bot_manager
+from routers.telegram.post_publisher import bot_manager
 
 router = APIRouter(prefix='/create_post', tags=['posts'])
 
@@ -83,6 +83,12 @@ async def get_posts(current_user: User = Depends(get_current_user)):
 @router.get('/{post_id}', response_model=Post)
 async def get_post(post_id: str,
                    current_user: User = Depends(get_current_user)):
+    pass
+
+
+@router.get('/photo/{photo_id}')
+async def get_photo(photo_id: str,
+                    current_user: User = Depends(get_current_user)):
     pass
 
 

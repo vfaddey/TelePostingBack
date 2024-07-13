@@ -1,6 +1,6 @@
 import asyncio
 from http.client import HTTPException
-from .telegram.bot_manager import BotManager
+from routers.telegram.bot_manager import BotManager
 from .post_repository import PostRepository
 from redis import Redis
 from typing import Dict
@@ -8,7 +8,7 @@ import threading
 from datetime import datetime, timedelta, timezone
 from .schemas import Post, AddPost
 from bson import ObjectId
-from .telegram.post_publisher import PostPublisher
+from routers.telegram.post_publisher import PostPublisher
 
 
 class PostService:
