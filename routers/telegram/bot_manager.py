@@ -86,7 +86,7 @@ class BotManager:
             return False
 
 
-def setup_handlers(bot):
+def setup_handlers(bot: TeleBot):
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
         bot.reply_to(message, "Welcome!")
@@ -97,7 +97,15 @@ def setup_handlers(bot):
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith('button'))
     def handle_button_callback(call):
-        pass
+        answers = call.data.split('_')[1:]
+        sub_text = answers[0]
+        guest_text = answers[1]
+        try:
+            bot.get_chat_member(call.message.chat.id, call.from_user.id)
+            bot.answer_callback_query(call.id, sub_text, show_alert=True)
+        except ApiTelegramException:
+            bot.answer_callback_query(call.id, guest_text, show_alert=True)
+        
 
 
 class InvalidBotKeyException(Exception):
