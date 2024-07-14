@@ -1,4 +1,6 @@
 from io import BytesIO
+from typing import Optional
+from click import Option
 import pandas as pd
 from fastapi import File, UploadFile, HTTPException, APIRouter, Depends
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
@@ -70,8 +72,11 @@ async def upload_file(current_user: User = Depends(get_current_user),
     
 
 @router.get('/', response_model=list[Post])
-async def get_posts(current_user: User = Depends(get_current_user)):
-    pass
+async def get_posts(posted: Optional[bool] = None,
+                    current_user: User = Depends(get_current_user)):
+    if posted is None:
+        return await post_service.get_posts(current_user.id)
+    return await post_service.get_posts(current_user.id, posted)
 
 
 @router.get('/{post_id}', response_model=Post)

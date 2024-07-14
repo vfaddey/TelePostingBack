@@ -34,24 +34,27 @@ class PostService:
     async def delete_post(self, post_id):
         pass
 
-    async def update_post(self, post_id, post: Post):
+    async def update_post(self, post_id: str | ObjectId, post: Post):
         pass
 
-    async def get_post(self, post_id: str | ObjectId):
+    async def get_post(self, post_id: str | ObjectId) -> Post:
         if isinstance(post_id, ObjectId):
             post = await self.post_repository.get_post(post_id)
         if isinstance(post_id, str):
             post = await self.post_repository.get_post(ObjectId(post_id))
         return post
+    
+    async def get_posts(self, user_id, posted=False) -> list[Post]:
+        return await self.post_repository.get_posts(user_id, posted)
 
     async def schedule_post(self, post_id: str, user_id: str, publish_time: datetime):
-        # if publish_time.tzinfo is None: 
-        #     publish_time = publish_time.replace(tzinfo=timezone.utc)
         delay = (publish_time - datetime.now(timezone.utc)).total_seconds()
         print(delay)
         if delay < 0:
             raise HTTPException(status_code=400, detail="Дата публикации указана позже текущей даты")
+        
         self.broker.zadd('post_schedule', {post_id: publish_time.timestamp()})
+        self.broker.expire(post_id, int(delay + 60 * 60))
         
         loop = asyncio.get_event_loop()
         timer = threading.Timer(delay, lambda: loop.create_task(self.post_publisher.fetch_post_and_send_message(post_id, user_id)))
