@@ -50,7 +50,6 @@ class PostPublisher:
         markup = InlineKeyboardMarkup(row_width=2)
         user = await ausers_collection.find_one({'_id': ObjectId(user_id)})
         user_channels_usernames = [channel['username'] for channel in user.get('channels', [])]
-        print(user_channels_usernames)
         if len(user_channels_usernames) == 0:
             raise InvalidPostException
         
@@ -64,7 +63,7 @@ class PostPublisher:
                             markup = self.prepare_markup(post.buttons, post.id)
                         for channel in channels:
                             if channel in user_channels_usernames:
-                                post_in_channel = current_bot.send_message(channel, post.text, reply_markup=markup)
+                                post_in_channel = await current_bot.send_message(channel, post.text, reply_markup=markup)
                                 posts_in_channels.append(post_in_channel)
                         await self.post_repository.mark_as_posted(ObjectId(post.id))
                         return post_in_channel

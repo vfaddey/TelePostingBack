@@ -34,7 +34,7 @@ async def add_bot(request: AddBot = Body(...),
                                               }
                                           }
                                       }, upsert=True)
-    bot_manager.add_bot(request.api_token)
+    await bot_manager.add_bot(request.api_token)
 
     return request
 
@@ -85,7 +85,7 @@ async def change_bot(request: ChangeActiveBot,
     if result.modified_count > 0:
         if len(prev_token) > 1:
             await bot_manager.stop_bot(prev_token)
-        bot_manager.add_bot(request.api_token)
+        await bot_manager.add_bot(request.api_token)
         return {'message': 'ok', 'active_bot': request.api_token}
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Не получилось обновить данные')

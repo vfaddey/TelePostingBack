@@ -1,20 +1,21 @@
-from telebot import TeleBot
+from telebot.async_telebot import AsyncTeleBot
 from telebot.apihelper import ApiTelegramException
 import multiprocessing
+import asyncio
 
 
 class BotManager:
     def __init__(self, users_collection):
-        self.bots = {}
+        self.bots: dict[str, AsyncTeleBot] = {}
         self.processes = {}
         self.terminate_flags = {}
         self.users_collection = users_collection
-        self.load_all_bots()
+        asyncio.create_task(self.load_all_bots())
 
-    def add_bot(self, api_key: str):
+    async def add_bot(self, api_key: str):
         if api_key not in self.bots:
-            if self._check_bot(api_key):
-                bot = TeleBot(api_key)
+            if await self._check_bot(api_key):
+                bot = AsyncTeleBot(api_key)
                 self.bots[api_key] = bot
 
                 terminate_flag = multiprocessing.Event()
@@ -31,8 +32,8 @@ class BotManager:
     async def stop_bot(self, api_key):
         if api_key in self.bots:
             bot = self.bots[api_key]
-            bot.remove_webhook()
-            bot.stop_polling()
+            # await bot.remove_webhook()
+            # await bot.stop_polling()
 
             self.terminate_flags[api_key].set()
             self.processes[api_key].terminate()
@@ -48,19 +49,22 @@ class BotManager:
 
     @staticmethod
     def bot_polling_process(api_key, terminate_flag):
-        bot = TeleBot(api_key)
+        bot = AsyncTeleBot(api_key)
         setup_handlers(bot)
 
-        while not terminate_flag.is_set():
-            try:
-                bot.polling(none_stop=True, timeout=60)
-            except Exception as e:
-                print(f"Exception occurred: {e}")
-                bot.stop_polling()
-                break
+        async def polling():
+            while not terminate_flag.is_set():
+                try:
+                    await bot.infinity_polling()
+                except Exception as e:
+                    print(f"Exception occurred: {e}")
+                    await bot.stop_polling()
+                    break
+
+        asyncio.run(polling())
 
 
-    def load_all_bots(self):
+    async def load_all_bots(self):
         result = self.users_collection.find({
             "bots": {
                 "$elemMatch": {
@@ -72,39 +76,39 @@ class BotManager:
             if user['bots']:
                 for bot in user['bots']:
                     if bot['active']:
-                        self.add_bot(bot['api_token'])
+                        await self.add_bot(bot['api_token'])
 
-    def get_bot(self, api_key) -> TeleBot:
+    def get_bot(self, api_key) -> AsyncTeleBot:
         return self.bots.get(api_key, None)
 
-    def _check_bot(self, api_key):
+    async def _check_bot(self, api_key):
         try:
-            bot = TeleBot(api_key)
-            bot.get_me()
+            bot = AsyncTeleBot(api_key)
+            await bot.get_me()
             return True
         except ApiTelegramException:
             return False
 
 
-def setup_handlers(bot: TeleBot):
+def setup_handlers(bot: AsyncTeleBot):
     @bot.message_handler(commands=['start'])
-    def send_welcome(message):
-        bot.reply_to(message, "Welcome!")
+    async def send_welcome(message):
+        await bot.reply_to(message, "Welcome!")
 
     @bot.message_handler(func=lambda message: True)
-    def echo_all(message):
-        bot.reply_to(message, message.text)
+    async def echo_all(message):
+        await bot.reply_to(message, message.text)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith('button'))
-    def handle_button_callback(call):
+    async def handle_button_callback(call):
         answers = call.data.split('_')[1:]
         sub_text = answers[0]
         guest_text = answers[1]
         try:
-            bot.get_chat_member(call.message.chat.id, call.from_user.id)
-            bot.answer_callback_query(call.id, sub_text, show_alert=True)
+            await bot.get_chat_member(call.message.chat.id, call.from_user.id)
+            await bot.answer_callback_query(call.id, sub_text, show_alert=True)
         except ApiTelegramException:
-            bot.answer_callback_query(call.id, guest_text, show_alert=True)
+            await bot.answer_callback_query(call.id, guest_text, show_alert=True)
         
 
 
