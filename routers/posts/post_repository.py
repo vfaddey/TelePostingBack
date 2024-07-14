@@ -1,3 +1,4 @@
+from datetime import timezone
 from .schemas import Post, AddPost
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorGridFSBucket
 from fastapi import UploadFile, HTTPException
@@ -14,7 +15,10 @@ class PostRepository:
         photo_ids = []
         if add_post.photos:
             photo_ids = await self._add_photos(add_post.photos)
-        
+            
+        if add_post.publish_time is not None:
+            if add_post.publish_time.tzinfo is None: 
+                add_post.publish_time = add_post.publish_time.replace(tzinfo=timezone.utc)
 
         button_list = []
         if add_post.buttons:

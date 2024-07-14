@@ -4,11 +4,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers.posts.router import router as posts_router
 from routers.auth.router import router as auth_router
 from routers.telegram.bots.router import router as bots_router
+from routers.telegram.channels.router import router as channels_router
 
 app = FastAPI()
 app.include_router(posts_router)
 app.include_router(auth_router)
 app.include_router(bots_router)
+app.include_router(channels_router)
 
 
 origins = [

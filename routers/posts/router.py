@@ -1,11 +1,7 @@
 from io import BytesIO
 import pandas as pd
-from fastapi import Form, File, UploadFile, HTTPException, APIRouter, Depends
-from typing import List, Optional
+from fastapi import File, UploadFile, HTTPException, APIRouter, Depends
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
-from pymongo.errors import ServerSelectionTimeoutError
-import datetime
-import json
 from starlette.responses import JSONResponse
 
 from routers.auth.models import User
@@ -16,8 +12,6 @@ from .post_service import PostService
 from .post_repository import PostRepository
 
 from redis import Redis
-
-from routers.telegram.post_publisher import bot_manager
 
 router = APIRouter(prefix='/create_post', tags=['posts'])
 

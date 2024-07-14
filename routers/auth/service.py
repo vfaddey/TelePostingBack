@@ -60,7 +60,7 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme),
-                           users_collection: AsyncIOMotorCollection = Depends(get_users_collection)):
+                           users_collection: AsyncIOMotorCollection = Depends(get_users_collection)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",

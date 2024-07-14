@@ -74,7 +74,7 @@ class BotManager:
                     if bot['active']:
                         self.add_bot(bot['api_token'])
 
-    def get_bot(self, api_key):
+    def get_bot(self, api_key) -> TeleBot:
         return self.bots.get(api_key, None)
 
     def _check_bot(self, api_key):

@@ -24,8 +24,12 @@ async def register(user: UserCreate,
     if user_in_db:
         raise HTTPException(status_code=400, detail="Пользователь с такой почтой уже существует")
     hashed_password = hash_password(user.password)
-    new_user = User(username=user.username, email=user.email, hashed_password=hashed_password)
-    await users_collection.insert_one(new_user.dict())
+    result = await users_collection.insert_one({
+        'username': user.username,
+        'email': user.email,
+        'hashed_password': hashed_password
+    })
+    new_user = User(username=user.username, email=user.email, hashed_password=hashed_password, id=str(result.inserted_id))
     return new_user
 
 
