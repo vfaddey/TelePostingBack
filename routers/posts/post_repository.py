@@ -28,6 +28,8 @@ class PostRepository:
             button_list = json.loads(add_post.buttons)
 
         channel_list = json.loads(add_post.channels)
+        if len(channel_list) == 0:
+            raise HTTPException('Нужно выбрать хотя бы один канал для публикации')
 
         post = {
             "text": add_post.text,
@@ -63,15 +65,19 @@ class PostRepository:
         photos = []
         async for photo_id in photo_ids:
             photo_data = bytearray()
-            async for chunk in self.fs.open_download_stream(photo_id):
+            async for chunk in await self.fs.open_download_stream(photo_id):
                 photo_data.extend(chunk)
             photos.append(BytesIO(photo_data))
         return photos
     
     async def get_photo(self, photo_id: str | ObjectId) -> BytesIO:
         photo_data = bytearray()
-        async for chunk in self.fs.open_download_stream(photo_id):
+        if isinstance(photo_id, str):
+            photo_id = ObjectId(photo_id)
+            print(photo_id)
+        async for chunk in await self.fs.open_download_stream(photo_id):
             photo_data.extend(chunk)
+        print(photo_data)
         return BytesIO(photo_data)
     
     async def get_posts(self, user_id: str, posted: bool) -> list[Post]:
@@ -91,6 +97,8 @@ class PostRepository:
     async def get_post(self, post_id: ObjectId) -> Post:
         result = await self.posts_collection.find_one({'_id': post_id})
         if result:
+            result['id'] = str(result['_id'])
+            del result['_id']
             return Post(**result)
         raise HTTPException('Не удалось найти пост')
 

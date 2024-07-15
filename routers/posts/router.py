@@ -1,6 +1,7 @@
 from io import BytesIO
 from typing import Optional
 from click import Option
+from fastapi.responses import StreamingResponse
 import pandas as pd
 from fastapi import File, UploadFile, HTTPException, APIRouter, Depends
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
@@ -29,8 +30,7 @@ post_service = PostService(post_repository, Redis())
 
 @router.post("/", response_model=Post)
 async def create_post(add_post: AddPost = Depends(parse_post_data)):
-    post = await post_service.add_post(add_post)
-    return post
+    return await post_service.add_post(add_post)
 
 
 @router.post("/uploadfile")
@@ -88,7 +88,11 @@ async def get_post(post_id: str,
 @router.get('/photo/{photo_id}')
 async def get_photo(photo_id: str,
                     current_user: User = Depends(get_current_user)):
-    pass
+    try:
+        photo_stream = await post_repository.get_photo(photo_id)
+        return StreamingResponse(photo_stream, media_type="image/jpeg")
+    except Exception as e:
+        raise HTTPException(status_code=404, detail="Photo not found")
 
 
 @router.delete('/{post_id}')
@@ -96,7 +100,7 @@ async def delete_post(post_id: str,
                       current_user: User = Depends(get_current_user)):
     pass 
 
-
+ 
 @router.put('/', response_model=Post)
 async def update_post(current_user: User = Depends(get_current_user)):
     pass

@@ -26,7 +26,9 @@ class PostPublisher:
         self.post_repository = post_repository
 
     async def fetch_post_and_send_message(self, post_id, user_id):
+        print(post_id)
         post = await self.post_repository.get_post(ObjectId(post_id))
+        print(post)
         channels = post.channels
         if len(channels) == 0:
             return
