@@ -32,8 +32,7 @@ class BotManager:
     async def stop_bot(self, api_key):
         if api_key in self.bots:
             bot = self.bots[api_key]
-            # await bot.remove_webhook()
-            # await bot.stop_polling()
+            await bot.close_session()
 
             self.terminate_flags[api_key].set()
             self.processes[api_key].terminate()
@@ -42,10 +41,8 @@ class BotManager:
             del self.processes[api_key]
             del self.terminate_flags[api_key]
             del self.bots[api_key]
-
-            print(f"Bot with API key {api_key} has been stopped.")
-        else:
-            print(f"No bot found with API key {api_key}.")
+            return True
+        return False
 
     @staticmethod
     def bot_polling_process(api_key, terminate_flag):
@@ -58,11 +55,10 @@ class BotManager:
                     await bot.infinity_polling()
                 except Exception as e:
                     print(f"Exception occurred: {e}")
-                    await bot.stop_polling()
+                    await bot.close_session()
                     break
 
         asyncio.run(polling())
-
 
     async def load_all_bots(self):
         result = self.users_collection.find({
@@ -110,7 +106,6 @@ def setup_handlers(bot: AsyncTeleBot):
         except ApiTelegramException:
             await bot.answer_callback_query(call.id, guest_text, show_alert=True)
         
-
 
 class InvalidBotKeyException(Exception):
     pass

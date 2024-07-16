@@ -1,10 +1,7 @@
-from turtle import pos
 from .bot_manager import BotManager
 from bson import ObjectId
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorGridFSBucket, AsyncIOMotorClient
-import asyncio
-
 
 import pymongo
 
@@ -26,9 +23,7 @@ class PostPublisher:
         self.post_repository = post_repository
 
     async def fetch_post_and_send_message(self, post_id, user_id):
-        print(post_id)
         post = await self.post_repository.get_post(ObjectId(post_id))
-        print(post)
         channels = post.channels
         if len(channels) == 0:
             return
@@ -87,7 +82,8 @@ class PostPublisher:
                 url_button = InlineKeyboardButton(button['text'], url=button['url'])
                 markup.add(url_button)
             elif button['type'] == 'text':
-                text_button = InlineKeyboardButton(button['text'], callback_data=f'button_{button["subscriberText"]}_{button["guestText"]}')
+                text_button = InlineKeyboardButton(button['text'],
+                                                   callback_data=f'button_{button["subscriberText"]}_{button["guestText"]}')
                 markup.add(text_button)
         return markup
 

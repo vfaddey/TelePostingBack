@@ -37,11 +37,12 @@ async def add_channel(add_channel: AddChannel = Body(...),
             if not current_bot:
                 raise HTTPException(status_code=400, detail='Не удалось проверить канал')
             try:
-                channel_info = current_bot.get_chat(add_channel.username)
+                channel_info = await current_bot.get_chat(add_channel.username)
             except Exception:
                 raise HTTPException(status_code=400, detail='Такой канал не найден')
             try:
-                current_bot.get_chat_member(add_channel.username, current_bot.user.id)
+                bot_info = await current_bot.get_me()
+                await current_bot.get_chat_member(add_channel.username, bot_info.id)
             except Exception:
                 raise HTTPException(status_code=400, detail=f'Ваш активный бот ({bot["api_token"]}) не состоит в канале или канал не найден')
             if channel_info.type != 'channel':
