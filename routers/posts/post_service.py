@@ -1,10 +1,7 @@
 import asyncio
 from fastapi import HTTPException
-from numpy import add
-from routers.telegram.bot_manager import BotManager
 from .post_repository import PostRepository
 from redis import Redis
-from typing import Dict
 import threading
 from datetime import datetime, timedelta, timezone
 from .schemas import Post, AddPost
@@ -16,7 +13,7 @@ class PostService:
     def __init__(self, post_repository: PostRepository, broker: Redis) -> None:
         self.post_repository = post_repository
         self.broker = broker
-        self.timers: Dict[str, threading.Timer] = {}
+        self.timers: dict[str, threading.Thread] = {}
         self.post_publisher = PostPublisher(post_repository)
         asyncio.create_task(self.load_scheduled_posts())
 
@@ -26,7 +23,7 @@ class PostService:
             if add_post.publish_now:
                 await self.publish_now(post.id, post.owner_id)
             else:
-                self.broker.set(post.id, post.publish_time.timestamp())
+                await self.broker.set(post.id, post.publish_time.timestamp())
                 await self.schedule_post(post.id, post.owner_id, post.publish_time)
             return post
         raise HTTPException('Не удалось добавить объект в БД')
@@ -40,9 +37,12 @@ class PostService:
     async def get_post(self, post_id: str | ObjectId) -> Post:
         if isinstance(post_id, ObjectId):
             post = await self.post_repository.get_post(post_id)
+            return post
         if isinstance(post_id, str):
             post = await self.post_repository.get_post(ObjectId(post_id))
-        return post
+            return post
+        else:
+            raise TypeError('Неверный тип')
     
     async def get_posts(self, user_id, posted=False) -> list[Post]:
         return await self.post_repository.get_posts(user_id, posted)
@@ -53,8 +53,8 @@ class PostService:
         if delay < 0:
             raise HTTPException(status_code=400, detail="Дата публикации указана позже текущей даты")
         
-        self.broker.zadd('post_schedule', {post_id: publish_time.timestamp()})
-        self.broker.expire(post_id, int(delay + 60 * 60))
+        await self.broker.zadd('post_schedule', {post_id: publish_time.timestamp()})
+        await self.broker.expire(post_id, int(delay + 60 * 60))
         
         loop = asyncio.get_event_loop()
         timer = threading.Timer(delay, lambda: loop.create_task(self.post_publisher.fetch_post_and_send_message(post_id, user_id)))

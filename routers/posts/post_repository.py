@@ -15,6 +15,20 @@ class PostRepository:
         self.fs = grid_fs_buckect
 
     async def add_post(self, add_post: AddPost) -> Post:
+        button_list = []
+        if add_post.buttons:
+            button_list = json.loads(add_post.buttons)
+
+        if add_post.photos:
+            if len(add_post.photos) > 1 and len(button_list) > 0:
+                raise HTTPException(status_code=400,
+                                    detail='Нельзя создавать кнопки, если в альбоме больше одной картинки')
+
+        if add_post.photo_urls:
+            if len(add_post.photo_urls) > 1 and len(button_list) > 0:
+                raise HTTPException(status_code=400,
+                                    detail='Нельзя создавать кнопки, если в альбоме больше одной картинки')
+
         photo_ids = []
         if add_post.photos:
             photo_ids = await self._add_photos(add_post.photos)
@@ -22,10 +36,6 @@ class PostRepository:
         if add_post.publish_time is not None:
             if add_post.publish_time.tzinfo is None: 
                 add_post.publish_time = add_post.publish_time.replace(tzinfo=timezone.utc)
-
-        button_list = []
-        if add_post.buttons:
-            button_list = json.loads(add_post.buttons)
 
         channel_list = json.loads(add_post.channels)
         if len(channel_list) == 0:
@@ -63,9 +73,9 @@ class PostRepository:
     
     async def get_photos(self, photo_ids: list[str]) -> list[BytesIO]:
         photos = []
-        if isinstance(photo_ids, str):
+        if isinstance(photo_ids[0], str):
             photo_ids = [ObjectId(x) for x in photo_ids]
-        async for photo_id in photo_ids:
+        for photo_id in photo_ids:
             photo_data = bytearray()
             async for chunk in await self.fs.open_download_stream(photo_id):
                 photo_data.extend(chunk)
