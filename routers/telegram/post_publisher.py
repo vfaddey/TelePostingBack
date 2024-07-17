@@ -67,7 +67,30 @@ class PostPublisher:
         raise InvalidPostException
 
     async def __send_photo_message(self, post, user_id, channels: list[str]):
-        pass
+        markup = InlineKeyboardMarkup(row_width=2)
+        user = await ausers_collection.find_one({'_id': ObjectId(user_id)})
+        user_channels_usernames = [channel['username'] for channel in user.get('channels', [])]
+        if len(user_channels_usernames) == 0:
+            raise InvalidPostException
+        photo = await self.post_repository.get_photo(post.photo_ids[0])
+        if user.get('bots', None):
+            for bot in user['bots']:
+                if bot.get('active', None):
+                    current_bot = bot_manager.get_bot(bot['api_token'])
+                    if post:
+                        posts_in_channels = []
+                        if post.buttons:
+                            markup = self.prepare_markup(post.buttons, post.id)
+                        for channel in channels:
+                            if channel in user_channels_usernames:
+                                post_in_channel = await current_bot.send_photo(channel,
+                                                                               photo=photo,
+                                                                               caption=post.text,
+                                                                               reply_markup=markup)
+                                posts_in_channels.append(post_in_channel)
+                        await self.post_repository.mark_as_posted(ObjectId(post.id))
+                        return post_in_channel
+        raise InvalidPostException
 
     async def __send_photo_url_message(self, post, user_id, channels: list[str]):
         pass

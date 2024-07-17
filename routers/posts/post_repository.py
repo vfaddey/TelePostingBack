@@ -63,6 +63,8 @@ class PostRepository:
     
     async def get_photos(self, photo_ids: list[str]) -> list[BytesIO]:
         photos = []
+        if isinstance(photo_ids, str):
+            photo_ids = [ObjectId(x) for x in photo_ids]
         async for photo_id in photo_ids:
             photo_data = bytearray()
             async for chunk in await self.fs.open_download_stream(photo_id):
@@ -74,10 +76,8 @@ class PostRepository:
         photo_data = bytearray()
         if isinstance(photo_id, str):
             photo_id = ObjectId(photo_id)
-            print(photo_id)
         async for chunk in await self.fs.open_download_stream(photo_id):
             photo_data.extend(chunk)
-        print(photo_data)
         return BytesIO(photo_data)
     
     async def get_posts(self, user_id: str, posted: bool) -> list[Post]:
