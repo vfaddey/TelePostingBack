@@ -1,6 +1,6 @@
 from .bot_manager import BotManager
 from bson import ObjectId
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorGridFSBucket, AsyncIOMotorClient
 
 import pymongo
@@ -93,10 +93,58 @@ class PostPublisher:
         raise InvalidPostException
 
     async def __send_photo_url_message(self, post, user_id, channels: list[str]):
-        pass
+        markup = InlineKeyboardMarkup(row_width=2)
+        user = await ausers_collection.find_one({'_id': ObjectId(user_id)})
+        user_channels_usernames = [channel['username'] for channel in user.get('channels', [])]
+        if len(user_channels_usernames) == 0:
+            raise InvalidPostException
+        if user.get('bots', None):
+            for bot in user['bots']:
+                if bot.get('active', None):
+                    current_bot = bot_manager.get_bot(bot['api_token'])
+                    if post:
+                        posts_in_channels = []
+                        if post.buttons:
+                            markup = self.prepare_markup(post.buttons, post.id)
+                        for channel in channels:
+                            if channel in user_channels_usernames:
+                                post_in_channel = await current_bot.send_photo(channel,
+                                                                               photo=post.photo_urls[0],
+                                                                               caption=post.text,
+                                                                               reply_markup=markup)
+                                posts_in_channels.append(post_in_channel)
+                        await self.post_repository.mark_as_posted(ObjectId(post.id))
+                        return post_in_channel
+        raise InvalidPostException
 
     async def __send_media_group(self, post, user_id, channels: list[str]):
-        pass
+        user = await ausers_collection.find_one({'_id': ObjectId(user_id)})
+        user_channels_usernames = [channel['username'] for channel in user.get('channels', [])]
+        if len(user_channels_usernames) == 0:
+            raise InvalidPostException
+        photos = await self.post_repository.get_photos(post.photo_ids)
+        media_group = []
+        for photo in photos:
+            photo.seek(0)
+            if len(media_group) == 0:
+                media_group.append(InputMediaPhoto(photo, caption=post.text))
+            else:
+                media_group.append(InputMediaPhoto(photo))
+
+        if user.get('bots', None):
+            for bot in user['bots']:
+                if bot.get('active', None):
+                    current_bot = bot_manager.get_bot(bot['api_token'])
+                    if post:
+                        posts_in_channels = []
+                        for channel in channels:
+                            if channel in user_channels_usernames:
+                                post_in_channel = await current_bot.send_media_group(channel, media=media_group)
+                                posts_in_channels.append(post_in_channel)
+                        res = await self.post_repository.mark_as_posted(ObjectId(post.id))
+                        print(res)
+                        return post_in_channel
+        raise InvalidPostException
 
     def prepare_markup(self, buttons: dict, post_id: ObjectId):
         markup = InlineKeyboardMarkup(row_width=2)
