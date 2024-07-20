@@ -23,7 +23,7 @@ class PostService:
             if add_post.publish_now:
                 await self.publish_now(post.id, post.owner_id)
             else:
-                await self.broker.set(post.id, post.publish_time.timestamp())
+                self.broker.set(post.id, post.publish_time.timestamp())
                 await self.schedule_post(post.id, post.owner_id, post.publish_time)
             return post
         raise HTTPException('Не удалось добавить объект в БД')
@@ -53,8 +53,8 @@ class PostService:
         if delay < 0:
             raise HTTPException(status_code=400, detail="Дата публикации указана позже текущей даты")
         
-        await self.broker.zadd('post_schedule', {post_id: publish_time.timestamp()})
-        await self.broker.expire(post_id, int(delay + 60 * 60))
+        self.broker.zadd('post_schedule', {post_id: publish_time.timestamp()})
+        self.broker.expire(post_id, int(delay + 60 * 60))
         
         loop = asyncio.get_event_loop()
         timer = threading.Timer(delay, lambda: loop.create_task(self.post_publisher.fetch_post_and_send_message(post_id, user_id)))
