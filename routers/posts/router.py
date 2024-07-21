@@ -98,8 +98,9 @@ async def get_photo(photo_id: str,
 @router.delete('/{post_id}')
 async def delete_post(post_id: str,
                       current_user: User = Depends(get_current_user)):
-    pass 
-
+    result = await post_service.delete_post(post_id, current_user.id)
+    return result
+    
  
 @router.put('/', response_model=Post)
 async def update_post(current_user: User = Depends(get_current_user)):

@@ -1,4 +1,5 @@
 from datetime import timezone
+import stat
 
 from pandas import json_normalize
 from .schemas import Post, AddPost
@@ -115,8 +116,17 @@ class PostRepository:
     async def update_post(self, post_id, post: Post):
         pass
 
-    async def delete_post(self, post_id):
-        pass
+    async def delete_post(self, post_id, user_id):
+        if not self.posts_collection.find_one({"_id": ObjectId(post_id)}):
+            raise HTTPException(status_code=404, detail="Этот пост не найден")
+
+        result = await self.posts_collection.delete_one({
+            "_id": ObjectId(post_id),
+            "owner_id": user_id
+            })
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=401, detail='Вы не являетесь создаталем поста')
+        return True
 
     async def mark_as_posted(self, post_id) -> bool:
         result = await self.posts_collection.update_one({'_id': post_id},

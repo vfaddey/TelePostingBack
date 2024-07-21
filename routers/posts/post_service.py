@@ -28,8 +28,15 @@ class PostService:
             return post
         raise HTTPException('Не удалось добавить объект в БД')
 
-    async def delete_post(self, post_id):
-        pass
+    async def delete_post(self, post_id, user_id):
+        result = await self.post_repository.delete_post(post_id, user_id)
+        if result and post_id in self.timers:
+            self.timers[post_id].cancel()
+
+        if result:
+            self.broker.delete(post_id)
+            self.broker.zrem('post_schedule', post_id)
+        return {'message': 'ok'}
 
     async def update_post(self, post_id: str | ObjectId, post: Post):
         pass
