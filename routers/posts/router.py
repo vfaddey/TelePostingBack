@@ -8,7 +8,7 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 from starlette.responses import JSONResponse
 
 from routers.auth.models import User
-from routers.auth.service import get_current_user
+from routers.auth.service import get_current_user, get_current_verified_user
 from routers.posts.schemas import Post, AddPost, parse_post_data
 
 from .post_service import PostService
@@ -100,7 +100,7 @@ async def delete_post(post_id: str,
                       current_user: User = Depends(get_current_user)):
     result = await post_service.delete_post(post_id, current_user.id)
     return result
-    
+
  
 @router.put('/', response_model=Post)
 async def update_post(current_user: User = Depends(get_current_user)):

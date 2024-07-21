@@ -4,7 +4,7 @@ from fastapi import Form, File, UploadFile, Depends
 from typing import Optional, List
 from pydantic import BaseModel
 from routers.auth.models import User
-from routers.auth.service import get_current_user
+from routers.auth.service import get_current_user, get_current_verified_user
 
 
 class Post(BaseModel):
@@ -41,7 +41,7 @@ async def parse_post_data(
     publish_now: bool = Form(False),
     photos: List[UploadFile] = File(None),
     channels: str = Form(None),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_verified_user),
 ):
     return AddPost(
         text=text,
