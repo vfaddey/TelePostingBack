@@ -62,7 +62,6 @@ class PostPublisher:
                         for channel in channels:
                             if channel in user_channels_usernames:
                                 post_in_channel = await current_bot.send_message(channel, post.text, reply_markup=markup)
-                                print(post_in_channel)
                                 posts_in_channels.append(post_in_channel)
                         result = await self.__handle_result(post, posts_in_channels)
                         return result
@@ -160,10 +159,10 @@ class PostPublisher:
     async def delete_post_from_chats(self, post_id, user_id):
         bot = await self.get_user_active_bot(user_id)
         post = await self.post_repository.get_post(ObjectId(post_id))
-        messages = post.get('messages', None)
+        messages = post.messages
         if messages:
             for message in messages:
-                await bot.delete_message(message['channel'], message['id'])
+                await bot.delete_message(f"@{message['channel']}", message['id'])
 
     async def get_user_active_bot(self, user_id):
         user = await ausers_collection.find_one({'_id': ObjectId(user_id)})

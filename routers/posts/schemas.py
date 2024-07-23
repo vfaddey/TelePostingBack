@@ -19,6 +19,7 @@ class Post(BaseModel):
     owner_id: Optional[str] = None
     posted: Optional[bool] = None
     channels: list[str]
+    messages: list[dict] = []
 
 
 class AddPost(BaseModel):
