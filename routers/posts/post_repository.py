@@ -30,6 +30,15 @@ class PostRepository:
                 raise HTTPException(status_code=400,
                                     detail='Нельзя создавать кнопки, если в альбоме больше одной картинки')
 
+        if add_post.publish_time and add_post.delete_time:
+            if add_post.delete_time > add_post.publish_time:
+                raise HTTPException(status_code=400,
+                                    detail='Дата удаления не может быть раньше даты публикации')
+            
+        if (not add_post.publish_now) and (not add_post.publish_time):
+            raise HTTPException(status_code=400,
+                                detail='Необходимо выбрать время публикации')
+
         photo_ids = []
         if add_post.photos:
             photo_ids = await self._add_photos(add_post.photos)
@@ -142,6 +151,5 @@ class PostRepository:
                                                         {
                                                             '$set': {'messages': messages}
                                                         }, upsert=True)
-        print(result)
         return result.modified_count > 0
 
