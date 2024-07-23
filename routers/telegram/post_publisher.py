@@ -2,6 +2,7 @@ from .bot_manager import BotManager
 from bson import ObjectId
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorGridFSBucket, AsyncIOMotorClient
+from routers.posts.schemas import Post
 
 import pymongo
 
@@ -61,9 +62,10 @@ class PostPublisher:
                         for channel in channels:
                             if channel in user_channels_usernames:
                                 post_in_channel = await current_bot.send_message(channel, post.text, reply_markup=markup)
+                                print(post_in_channel)
                                 posts_in_channels.append(post_in_channel)
-                        await self.post_repository.mark_as_posted(ObjectId(post.id))
-                        return post_in_channel
+                        result = await self.__handle_result(post, posts_in_channels)
+                        return result
         raise InvalidPostException
 
     async def __send_photo_message(self, post, user_id, channels: list[str]):
@@ -88,8 +90,8 @@ class PostPublisher:
                                                                                caption=post.text,
                                                                                reply_markup=markup)
                                 posts_in_channels.append(post_in_channel)
-                        await self.post_repository.mark_as_posted(ObjectId(post.id))
-                        return post_in_channel
+                        result = await self.__handle_result(post, posts_in_channels)
+                        return result
         raise InvalidPostException
 
     async def __send_photo_url_message(self, post, user_id, channels: list[str]):
@@ -113,8 +115,8 @@ class PostPublisher:
                                                                                caption=post.text,
                                                                                reply_markup=markup)
                                 posts_in_channels.append(post_in_channel)
-                        await self.post_repository.mark_as_posted(ObjectId(post.id))
-                        return post_in_channel
+                        result = await self.__handle_result(post, posts_in_channels)
+                        return result
         raise InvalidPostException
 
     async def __send_media_group(self, post, user_id, channels: list[str]):
@@ -141,10 +143,20 @@ class PostPublisher:
                             if channel in user_channels_usernames:
                                 post_in_channel = await current_bot.send_media_group(channel, media=media_group)
                                 posts_in_channels.append(post_in_channel)
-                        res = await self.post_repository.mark_as_posted(ObjectId(post.id))
-                        print(res)
-                        return post_in_channel
+                        result = await self.__handle_result(post, posts_in_channels)
+                        return result
         raise InvalidPostException
+    
+    async def __handle_result(self, post: Post, posts_in_channels: list):
+        post_id = ObjectId(post.id)
+        messages = [{'channel': message.chat.username, 'id': message.id} for message in posts_in_channels]
+        try:
+            await self.post_repository.mark_as_posted(post_id)
+            await self.post_repository.save_message_id(post_id, messages)
+            return True
+        except:
+            return False
+
 
     def prepare_markup(self, buttons: dict, post_id: ObjectId):
         markup = InlineKeyboardMarkup(row_width=2)

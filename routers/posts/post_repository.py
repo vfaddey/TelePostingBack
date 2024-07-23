@@ -136,4 +136,12 @@ class PostRepository:
                                                             }
                                                         })
         return result.matched_count > 0
+    
+    async def save_message_id(self, post_id: ObjectId, messages: list[dict]):
+        result = await self.posts_collection.update_one({'_id': post_id},
+                                                        {
+                                                            '$set': {'messages': messages}
+                                                        }, upsert=True)
+        print(result)
+        return result.modified_count > 0
 
