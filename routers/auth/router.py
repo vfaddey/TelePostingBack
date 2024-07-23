@@ -104,6 +104,8 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
 
 @router.get('/confirm')
 async def get_temp_key(current_user: User = Depends(get_current_user)):
+    if current_user.verified:
+        raise HTTPException(status_code=400, detail='Ваш профиль уже подтвержден')
     temp_key = generate_random_base64()
     redis.set(temp_key, current_user.id)
     redis.expire(temp_key, 125)
