@@ -156,7 +156,22 @@ class PostPublisher:
             return True
         except:
             return False
+        
+    async def delete_post_from_chats(self, post_id, user_id):
+        bot = await self.get_user_active_bot(user_id)
+        post = await self.post_repository.get_post(ObjectId(post_id))
+        messages = post.get('messages', None)
+        if messages:
+            for message in messages:
+                await bot.delete_message(message['channel'], message['id'])
 
+    async def get_user_active_bot(self, user_id):
+        user = await ausers_collection.find_one({'_id': ObjectId(user_id)})
+        if user.get('bots', None):
+            for bot in user['bots']:
+                if bot.get('active', None):
+                    current_bot = bot_manager.get_bot(bot['api_token'])
+                    return current_bot
 
     def prepare_markup(self, buttons: dict, post_id: ObjectId):
         markup = InlineKeyboardMarkup(row_width=2)
