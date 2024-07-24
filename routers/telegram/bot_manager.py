@@ -22,7 +22,7 @@ class BotManager:
                 terminate_flag = multiprocessing.Event()
                 self.terminate_flags[api_key] = terminate_flag
 
-                process = multiprocessing.Process(target=self.bot_polling_process, args=(api_key, terminate_flag))
+                process = multiprocessing.Process(target=self.bot_polling_process, args=(api_key, terminate_flag), daemon=True)
                 self.processes[api_key] = process
                 process.start()
             else:
@@ -90,7 +90,7 @@ class BotManager:
 def setup_handlers(bot: AsyncTeleBot):
     @bot.message_handler(commands=['start'])
     async def send_welcome(message):
-        await bot.reply_to(message, "Welcome!")
+        await bot.reply_to(message, "Привет!")
     
     @bot.message_handler(commands=['confirm'])
     async def confirm_account(message):
