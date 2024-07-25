@@ -8,4 +8,3 @@ class User(BaseModel):
     telegram_id: int
     telegram_username: str
     email: EmailStr
-    hashed_password: str
