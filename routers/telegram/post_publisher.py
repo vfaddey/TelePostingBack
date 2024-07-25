@@ -60,8 +60,10 @@ class PostPublisher:
                         if post.buttons:
                             markup = self.prepare_markup(post.buttons, post.id)
                         for channel in channels:
+                            if not channel.startswith('@'):
+                                channel = '@' + channel
                             if channel in user_channels_usernames:
-                                post_in_channel = await current_bot.send_message(channel, post.text, reply_markup=markup)
+                                post_in_channel = await current_bot.send_message(channel, post.text, reply_markup=markup, parse_mode='Markdown')
                                 posts_in_channels.append(post_in_channel)
                         result = await self.__handle_result(post, posts_in_channels)
                         return result
@@ -83,11 +85,14 @@ class PostPublisher:
                         if post.buttons:
                             markup = self.prepare_markup(post.buttons, post.id)
                         for channel in channels:
+                            if not channel.startswith('@'):
+                                channel = '@' + channel
                             if channel in user_channels_usernames:
                                 post_in_channel = await current_bot.send_photo(channel,
                                                                                photo=photo,
                                                                                caption=post.text,
-                                                                               reply_markup=markup)
+                                                                               reply_markup=markup,
+                                                                               parse_mode='Markdown')
                                 posts_in_channels.append(post_in_channel)
                         result = await self.__handle_result(post, posts_in_channels)
                         return result
@@ -108,11 +113,14 @@ class PostPublisher:
                         if post.buttons:
                             markup = self.prepare_markup(post.buttons, post.id)
                         for channel in channels:
+                            if not channel.startswith('@'):
+                                channel = '@' + channel
                             if channel in user_channels_usernames:
                                 post_in_channel = await current_bot.send_photo(channel,
                                                                                photo=post.photo_urls[0],
                                                                                caption=post.text,
-                                                                               reply_markup=markup)
+                                                                               reply_markup=markup,
+                                                                               parse_mode='Markdown')
                                 posts_in_channels.append(post_in_channel)
                         result = await self.__handle_result(post, posts_in_channels)
                         return result
@@ -139,8 +147,10 @@ class PostPublisher:
                     if post:
                         posts_in_channels = []
                         for channel in channels:
+                            if not channel.startswith('@'):
+                                channel = '@' + channel
                             if channel in user_channels_usernames:
-                                post_in_channel = await current_bot.send_media_group(channel, media=media_group)
+                                post_in_channel = await current_bot.send_media_group(channel, media=media_group, parse_mode='Markdown')
                                 posts_in_channels.append(post_in_channel)
                         result = await self.__handle_result(post, posts_in_channels)
                         return result

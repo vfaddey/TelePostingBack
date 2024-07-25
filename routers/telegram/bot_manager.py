@@ -1,6 +1,6 @@
 import aiohttp
 from telebot.async_telebot import AsyncTeleBot
-from telebot.apihelper import ApiTelegramException
+from telebot.asyncio_helper import ApiTelegramException
 import multiprocessing
 import asyncio
 
@@ -90,7 +90,7 @@ class BotManager:
 def setup_handlers(bot: AsyncTeleBot):
     @bot.message_handler(commands=['start'])
     async def send_welcome(message):
-        await bot.reply_to(message, "Привет!")
+        await bot.reply_to(message, 'Привет! Я бот для отложенного постинга сообщений leetbot! Заходи на наш <a href="leetpost.ru">сайт</a>!', parse_mode='HTML')
     
     @bot.message_handler(commands=['confirm'])
     async def confirm_account(message):

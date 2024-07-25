@@ -14,7 +14,7 @@ async def add_bot(request: AddBot = Body(...),
                   current_user: User = Depends(get_current_user),
                   users_collection: AsyncIOMotorCollection = Depends(get_users_collection)):
 
-    if bot_manager._check_bot(request.api_token):
+    if await bot_manager._check_bot(request.api_token):
         pass
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Неподходящий Api токен')
@@ -26,6 +26,7 @@ async def add_bot(request: AddBot = Body(...),
     if any(bot['api_token'] == request.api_token for bot in bots):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Такой бот уже существует')
 
+    await bot_manager.add_bot(request.api_token)
     await users_collection.update_one({'username': current_user.username},
                                       {
                                           '$push': {'bots': {
@@ -34,7 +35,6 @@ async def add_bot(request: AddBot = Body(...),
                                               }
                                           }
                                       }, upsert=True)
-    await bot_manager.add_bot(request.api_token)
 
     return request
 
