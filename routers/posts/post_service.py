@@ -96,12 +96,17 @@ class PostService:
         for task in scheduled_tasks:
             post_id = task.decode('utf-8')
             post = await self.post_repository.get_post(ObjectId(post_id))
+            user_id = post.owner_id
             if post:
                 publish_time = datetime.fromtimestamp(float(self.broker.get(post_id)), tz=timezone.utc)
-                delete_time = datetime.fromtimestamp(float(self.broker.get(f'delete:{post_id}')), tz=timezone.utc)
-                user_id = post.owner_id
                 await self.schedule_post(post_id, user_id, publish_time)
-                await self.schedule_delete(post_id, user_id, delete_time)
+                try:
+                    delete_time = datetime.fromtimestamp(float(self.broker.get(f'delete:{post_id}')), tz=timezone.utc)
+                    await self.schedule_delete(post_id, user_id, delete_time)
+                except Exception:
+                    ...
+                
+                
         
 
 class UnSuccessfulDBOperationException(Exception):

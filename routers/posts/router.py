@@ -1,3 +1,4 @@
+from datetime import timedelta
 from io import BytesIO
 from typing import Optional
 from click import Option
@@ -45,9 +46,9 @@ async def upload_file(current_user: User = Depends(get_current_user),
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error reading file: {str(e)}")
 
-    expected_columns = {'text', 'url', 'date'}
+    expected_columns = {'text', 'url', 'date', 'channel'}
     if not expected_columns.issubset(data.columns):
-        raise HTTPException(status_code=400, detail=f"Missing one of the required columns: {expected_columns}")
+        raise HTTPException(status_code=400, detail=f"Найдены не все столбцы для публикаций: {expected_columns}")
 
     try:
         documents = []
@@ -57,9 +58,10 @@ async def upload_file(current_user: User = Depends(get_current_user),
                 "photo_urls": [row['url']],
                 "buttons": '[]',
                 "publish_now": False,
-                "publish_time": pd.to_datetime(row['date']).to_pydatetime(),
+                "publish_time": pd.to_datetime(row['date']).to_pydatetime() - timedelta(hours=3),
                 "delete_time": None,
-                "owner_id": current_user.id
+                "owner_id": current_user.id,
+                "channels": '["' + row['channel'] + '"]'
             }
             post = AddPost(**post_data)
             documents.append(post)
