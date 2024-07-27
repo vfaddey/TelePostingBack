@@ -1,5 +1,6 @@
+import aiohttp
 from telebot.async_telebot import AsyncTeleBot
-from telebot.apihelper import ApiTelegramException
+from telebot.asyncio_helper import ApiTelegramException
 import multiprocessing
 import asyncio
 
@@ -21,7 +22,7 @@ class BotManager:
                 terminate_flag = multiprocessing.Event()
                 self.terminate_flags[api_key] = terminate_flag
 
-                process = multiprocessing.Process(target=self.bot_polling_process, args=(api_key, terminate_flag))
+                process = multiprocessing.Process(target=self.bot_polling_process, args=(api_key, terminate_flag), daemon=True)
                 self.processes[api_key] = process
                 process.start()
             else:
@@ -31,9 +32,6 @@ class BotManager:
 
     async def stop_bot(self, api_key):
         if api_key in self.bots:
-            bot = self.bots[api_key]
-            await bot.close_session()
-
             self.terminate_flags[api_key].set()
             self.processes[api_key].terminate()
             self.processes[api_key].join()
@@ -41,8 +39,10 @@ class BotManager:
             del self.processes[api_key]
             del self.terminate_flags[api_key]
             del self.bots[api_key]
-            return True
-        return False
+
+            print(f"Bot with API key {api_key} has been stopped.")
+        else:
+            print(f"No bot found with API key {api_key}.")
 
     @staticmethod
     def bot_polling_process(api_key, terminate_flag):
@@ -55,10 +55,11 @@ class BotManager:
                     await bot.infinity_polling()
                 except Exception as e:
                     print(f"Exception occurred: {e}")
-                    await bot.close_session()
+                    await bot.stop_polling()
                     break
 
         asyncio.run(polling())
+
 
     async def load_all_bots(self):
         result = self.users_collection.find({
@@ -89,7 +90,32 @@ class BotManager:
 def setup_handlers(bot: AsyncTeleBot):
     @bot.message_handler(commands=['start'])
     async def send_welcome(message):
-        await bot.reply_to(message, "Welcome!")
+        await bot.reply_to(message, 'Привет! Я бот для отложенного постинга сообщений leetbot! Заходи на наш <a href="leetpost.ru">сайт</a>!', parse_mode='HTML')
+    
+    @bot.message_handler(commands=['confirm'])
+    async def confirm_account(message):
+        chat_id = message.chat.id
+        user_id = message.from_user.id
+        username = message.from_user.username
+
+        try:
+            temp_key = message.text.split()[1]
+        except IndexError:
+            await bot.send_message(chat_id, "Пожалуйста, предоставьте временный ключ. Пример: /confirm <temp_key>")
+            return
+
+        data = {
+            "temp_key": temp_key,
+            "telegram_id": user_id,
+            "username": username
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post("http://localhost:8000/auth/confirm", json=data) as response:
+                if response.status == 200:
+                    await bot.send_message(chat_id, "Ваш аккаунт успешно подтвержден!")
+                else:
+                    await bot.send_message(chat_id, "Не удалось подтвердить аккаунт. Пожалуйста, проверьте временный ключ и попробуйте снова.")
 
     @bot.message_handler(func=lambda message: True)
     async def echo_all(message):
@@ -106,6 +132,7 @@ def setup_handlers(bot: AsyncTeleBot):
         except ApiTelegramException:
             await bot.answer_callback_query(call.id, guest_text, show_alert=True)
         
+
 
 class InvalidBotKeyException(Exception):
     pass

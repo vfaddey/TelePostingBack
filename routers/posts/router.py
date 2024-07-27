@@ -1,3 +1,4 @@
+from datetime import timedelta
 from io import BytesIO
 from typing import Optional
 from click import Option
@@ -8,7 +9,7 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 from starlette.responses import JSONResponse
 
 from routers.auth.models import User
-from routers.auth.service import get_current_user
+from routers.auth.service import get_current_user, get_current_verified_user
 from routers.posts.schemas import Post, AddPost, parse_post_data
 
 from .post_service import PostService
@@ -45,9 +46,9 @@ async def upload_file(current_user: User = Depends(get_current_user),
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error reading file: {str(e)}")
 
-    expected_columns = {'text', 'url', 'date'}
+    expected_columns = {'text', 'url', 'date', 'channel'}
     if not expected_columns.issubset(data.columns):
-        raise HTTPException(status_code=400, detail=f"Missing one of the required columns: {expected_columns}")
+        raise HTTPException(status_code=400, detail=f"Найдены не все столбцы для публикаций: {expected_columns}")
 
     try:
         documents = []
@@ -57,9 +58,10 @@ async def upload_file(current_user: User = Depends(get_current_user),
                 "photo_urls": [row['url']],
                 "buttons": '[]',
                 "publish_now": False,
-                "publish_time": pd.to_datetime(row['date']).to_pydatetime(),
+                "publish_time": pd.to_datetime(row['date']).to_pydatetime() - timedelta(hours=3),
                 "delete_time": None,
-                "owner_id": current_user.id
+                "owner_id": current_user.id,
+                "channels": '["' + row['channel'] + '"]'
             }
             post = AddPost(**post_data)
             documents.append(post)
@@ -98,7 +100,8 @@ async def get_photo(photo_id: str,
 @router.delete('/{post_id}')
 async def delete_post(post_id: str,
                       current_user: User = Depends(get_current_user)):
-    pass 
+    result = await post_service.delete_post(post_id, current_user.id)
+    return result
 
  
 @router.put('/', response_model=Post)

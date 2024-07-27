@@ -2,6 +2,7 @@ from .bot_manager import BotManager
 from bson import ObjectId
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorGridFSBucket, AsyncIOMotorClient
+from routers.posts.schemas import Post
 
 import pymongo
 
@@ -59,11 +60,13 @@ class PostPublisher:
                         if post.buttons:
                             markup = self.prepare_markup(post.buttons, post.id)
                         for channel in channels:
+                            if not channel.startswith('@'):
+                                channel = '@' + channel
                             if channel in user_channels_usernames:
-                                post_in_channel = await current_bot.send_message(channel, post.text, reply_markup=markup)
+                                post_in_channel = await current_bot.send_message(channel, post.text, reply_markup=markup, parse_mode='Markdown')
                                 posts_in_channels.append(post_in_channel)
-                        await self.post_repository.mark_as_posted(ObjectId(post.id))
-                        return post_in_channel
+                        result = await self.__handle_result(post, posts_in_channels)
+                        return result
         raise InvalidPostException
 
     async def __send_photo_message(self, post, user_id, channels: list[str]):
@@ -82,14 +85,17 @@ class PostPublisher:
                         if post.buttons:
                             markup = self.prepare_markup(post.buttons, post.id)
                         for channel in channels:
+                            if not channel.startswith('@'):
+                                channel = '@' + channel
                             if channel in user_channels_usernames:
                                 post_in_channel = await current_bot.send_photo(channel,
                                                                                photo=photo,
                                                                                caption=post.text,
-                                                                               reply_markup=markup)
+                                                                               reply_markup=markup,
+                                                                               parse_mode='Markdown')
                                 posts_in_channels.append(post_in_channel)
-                        await self.post_repository.mark_as_posted(ObjectId(post.id))
-                        return post_in_channel
+                        result = await self.__handle_result(post, posts_in_channels)
+                        return result
         raise InvalidPostException
 
     async def __send_photo_url_message(self, post, user_id, channels: list[str]):
@@ -107,14 +113,17 @@ class PostPublisher:
                         if post.buttons:
                             markup = self.prepare_markup(post.buttons, post.id)
                         for channel in channels:
+                            if not channel.startswith('@'):
+                                channel = '@' + channel
                             if channel in user_channels_usernames:
                                 post_in_channel = await current_bot.send_photo(channel,
                                                                                photo=post.photo_urls[0],
                                                                                caption=post.text,
-                                                                               reply_markup=markup)
+                                                                               reply_markup=markup,
+                                                                               parse_mode='Markdown')
                                 posts_in_channels.append(post_in_channel)
-                        await self.post_repository.mark_as_posted(ObjectId(post.id))
-                        return post_in_channel
+                        result = await self.__handle_result(post, posts_in_channels)
+                        return result
         raise InvalidPostException
 
     async def __send_media_group(self, post, user_id, channels: list[str]):
@@ -138,13 +147,40 @@ class PostPublisher:
                     if post:
                         posts_in_channels = []
                         for channel in channels:
+                            if not channel.startswith('@'):
+                                channel = '@' + channel
                             if channel in user_channels_usernames:
-                                post_in_channel = await current_bot.send_media_group(channel, media=media_group)
+                                post_in_channel = await current_bot.send_media_group(channel, media=media_group, parse_mode='Markdown')
                                 posts_in_channels.append(post_in_channel)
-                        res = await self.post_repository.mark_as_posted(ObjectId(post.id))
-                        print(res)
-                        return post_in_channel
+                        result = await self.__handle_result(post, posts_in_channels)
+                        return result
         raise InvalidPostException
+    
+    async def __handle_result(self, post: Post, posts_in_channels: list):
+        post_id = ObjectId(post.id)
+        messages = [{'channel': message.chat.username, 'id': message.id} for message in posts_in_channels]
+        try:
+            await self.post_repository.mark_as_posted(post_id)
+            await self.post_repository.save_message_id(post_id, messages)
+            return True
+        except:
+            return False
+        
+    async def delete_post_from_chats(self, post_id, user_id):
+        bot = await self.get_user_active_bot(user_id)
+        post = await self.post_repository.get_post(ObjectId(post_id))
+        messages = post.messages
+        if messages:
+            for message in messages:
+                await bot.delete_message(f"@{message['channel']}", message['id'])
+
+    async def get_user_active_bot(self, user_id):
+        user = await ausers_collection.find_one({'_id': ObjectId(user_id)})
+        if user.get('bots', None):
+            for bot in user['bots']:
+                if bot.get('active', None):
+                    current_bot = bot_manager.get_bot(bot['api_token'])
+                    return current_bot
 
     def prepare_markup(self, buttons: dict, post_id: ObjectId):
         markup = InlineKeyboardMarkup(row_width=2)

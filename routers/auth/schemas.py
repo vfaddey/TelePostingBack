@@ -26,3 +26,9 @@ class TokenData(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     token: str
+
+
+class TelegramConfirmRequest(BaseModel):
+    temp_key: str
+    telegram_id: int
+    username: str

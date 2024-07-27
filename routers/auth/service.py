@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from bson import ObjectId
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, HTTPBearer
@@ -22,6 +23,7 @@ with open(r"C:\Users\vfaddey\PycharmProjects\telePosting\routers\auth\keys\priva
 
 with open(r"C:\Users\vfaddey\PycharmProjects\telePosting\routers\auth\keys\public.pem") as f:
     PUBLIC_KEY = f.read()
+
 
 
 async def authenticate_user(email: str,
@@ -76,8 +78,32 @@ async def get_current_user(token: str = Depends(oauth2_scheme),
         token_data = TokenData(sub=sub, username=username, email=email)
     except JWTError:
         raise credentials_exception
-    user = await users_collection.find_one({"username": token_data.username})
+    user = await users_collection.find_one({"_id": ObjectId(token_data.sub)})
     if user is None:
+        raise credentials_exception
+    user['id'] = str(user['_id'])
+    return User(**user)
+
+
+async def get_current_verified_user(token: str = Depends(oauth2_scheme),
+                                    users_collection: AsyncIOMotorCollection = Depends(get_users_collection)) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+        detail="Необходимо подтвердить аккаунт",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, PUBLIC_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("username")
+        email: str = payload.get('email')
+        sub: str = payload.get('sub')
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(sub=sub, username=username, email=email)
+    except JWTError:
+        raise credentials_exception
+    user = await users_collection.find_one({"_id": ObjectId(token_data.sub)})
+    if (user is None) or (not user.get('verified', False)):
         raise credentials_exception
     user['id'] = str(user['_id'])
     return User(**user)
