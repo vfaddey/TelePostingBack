@@ -45,7 +45,7 @@ async def get_user_bots(current_user: User = Depends(get_current_user),
     username = current_user.username
     result = await users_collection.find_one({'username': username})
     if result:
-        if result['bots']:
+        if result.get('bots', None):
             bots = result['bots']
             return bots
         return []
