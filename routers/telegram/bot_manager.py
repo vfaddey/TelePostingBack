@@ -16,13 +16,16 @@ class BotManager:
     async def add_bot(self, api_key: str):
         if api_key not in self.bots:
             if await self._check_bot(api_key):
+                print('Создаю бота')
                 bot = AsyncTeleBot(api_key)
+                print('Cохраняю бота')
                 self.bots[api_key] = bot
 
                 terminate_flag = multiprocessing.Event()
                 self.terminate_flags[api_key] = terminate_flag
 
                 process = multiprocessing.Process(target=self.bot_polling_process, args=(api_key, terminate_flag), daemon=True)
+                print('Дал задание')
                 self.processes[api_key] = process
                 process.start()
             else:
@@ -46,10 +49,12 @@ class BotManager:
 
     @staticmethod
     def bot_polling_process(api_key, terminate_flag):
+        print('Вызвал')
         bot = AsyncTeleBot(api_key)
         setup_handlers(bot)
 
         async def polling():
+            print('Пытаюсь запустить')
             while not terminate_flag.is_set():
                 try:
                     await bot.infinity_polling(timeout=10, request_timeout=90, interval=0)
@@ -80,9 +85,7 @@ class BotManager:
     async def _check_bot(self, api_key):
         try:
             bot = AsyncTeleBot(api_key)
-            me = await bot.get_me()
-            print(me)
-            print('Завершаю')
+            await bot.get_me()
             return True
         except ApiTelegramException:
             return False
