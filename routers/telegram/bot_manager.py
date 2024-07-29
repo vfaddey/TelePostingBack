@@ -46,16 +46,12 @@ class BotManager:
 
     @staticmethod
     def bot_polling_process(api_key, terminate_flag):
-        print('Вызвал1')
         bot = AsyncTeleBot(api_key)
-        print('Вызвал2')
         setup_handlers(bot)
-        print('Вызвал3')
 
         async def polling():
             while not terminate_flag.is_set():
                 try:
-                    print('запускаю')
                     await bot.infinity_polling(timeout=10, request_timeout=90, interval=0)
                 except Exception as e:
                     print(f"Exception occurred: {e}")
@@ -84,7 +80,9 @@ class BotManager:
     async def _check_bot(self, api_key):
         try:
             bot = AsyncTeleBot(api_key)
-            await bot.get_me()
+            me = await bot.get_me()
+            print(me)
+            print('Завершаю')
             return True
         except ApiTelegramException:
             return False
