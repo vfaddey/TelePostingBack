@@ -3,6 +3,7 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.asyncio_helper import ApiTelegramException
 import multiprocessing
 import asyncio
+import socket
 
 
 class BotManager:
@@ -17,8 +18,9 @@ class BotManager:
         if api_key not in self.bots:
             if await self._check_bot(api_key):
                 bot = AsyncTeleBot(api_key)
-                await bot.send_message(704024826, 'Работаю')
                 self.bots[api_key] = bot
+                if check_internet_connection():
+                    print('Подключение к интернету есть 1')
 
                 terminate_flag = multiprocessing.Event()
                 self.terminate_flags[api_key] = terminate_flag
@@ -51,6 +53,8 @@ class BotManager:
     def bot_polling_process(api_key, terminate_flag):
         bot = AsyncTeleBot(api_key)
         setup_handlers(bot)
+        if check_internet_connection():
+            print('Подключение к интернету есть 2')
 
         async def polling():
             while not terminate_flag.is_set():
@@ -132,8 +136,14 @@ def setup_handlers(bot: AsyncTeleBot):
             await bot.answer_callback_query(call.id, sub_text, show_alert=True)
         except ApiTelegramException:
             await bot.answer_callback_query(call.id, guest_text, show_alert=True)
-        
 
+
+def check_internet_connection():
+    try:
+        socket.create_connection(("www.google.com", 80))
+        return True
+    except OSError:
+        return False
 
 class InvalidBotKeyException(Exception):
     pass
