@@ -24,8 +24,8 @@ class BotManager:
 
                 process = multiprocessing.Process(target=self.bot_polling_process, args=(api_key, terminate_flag), daemon=True)
                 self.processes[api_key] = process
-                process.start()
                 print('Запускаю процесс')
+                process.start()
             else:
                 raise InvalidBotKeyException('Неверный API ключ для бота')
         else:
