@@ -1,3 +1,5 @@
+from asyncio import sleep
+
 import aiohttp
 from telebot.async_telebot import AsyncTeleBot
 from telebot.asyncio_helper import ApiTelegramException
@@ -16,16 +18,14 @@ class BotManager:
     async def add_bot(self, api_key: str):
         if api_key not in self.bots:
             if await self._check_bot(api_key):
-                print('Создаю бота')
                 bot = AsyncTeleBot(api_key)
-                print('Cохраняю бота')
                 self.bots[api_key] = bot
+                await sleep(10)
 
                 terminate_flag = multiprocessing.Event()
                 self.terminate_flags[api_key] = terminate_flag
 
                 process = multiprocessing.Process(target=self.bot_polling_process, args=(api_key, terminate_flag), daemon=True)
-                print('Дал задание')
                 self.processes[api_key] = process
                 process.start()
             else:
@@ -49,12 +49,10 @@ class BotManager:
 
     @staticmethod
     def bot_polling_process(api_key, terminate_flag):
-        print('Вызвал')
         bot = AsyncTeleBot(api_key)
         setup_handlers(bot)
 
         async def polling():
-            print('Пытаюсь запустить')
             while not terminate_flag.is_set():
                 try:
                     await bot.infinity_polling(timeout=10, request_timeout=90, interval=0)
