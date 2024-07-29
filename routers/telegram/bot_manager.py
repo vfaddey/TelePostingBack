@@ -17,12 +17,15 @@ class BotManager:
         if api_key not in self.bots:
             if await self._check_bot(api_key):
                 bot = AsyncTeleBot(api_key)
+                await bot.send_message(704024826, 'Работаю')
                 self.bots[api_key] = bot
 
                 terminate_flag = multiprocessing.Event()
                 self.terminate_flags[api_key] = terminate_flag
 
-                process = multiprocessing.Process(target=self.bot_polling_process, args=(api_key, terminate_flag), daemon=True)
+                process = multiprocessing.Process(target=self.bot_polling_process,
+                                                  args=(api_key, terminate_flag),
+                                                  daemon=True)
                 self.processes[api_key] = process
                 process.start()
             else:
@@ -48,9 +51,6 @@ class BotManager:
     def bot_polling_process(api_key, terminate_flag):
         bot = AsyncTeleBot(api_key)
         setup_handlers(bot)
-        print(api_key)
-        res = asyncio.run(bot.get_me())
-        print(res)
 
         async def polling():
             while not terminate_flag.is_set():
