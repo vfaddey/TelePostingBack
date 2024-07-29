@@ -16,8 +16,16 @@ from .service import authenticate_user, create_access_token, get_current_user, A
 from .utils import hash_password, generate_random_base64
 from bson import ObjectId
 
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+REDIS_URL = os.getenv('REDIS_URL')
+REDIS_PORT = os.getenv('REDIS_PORT')
+
 router = APIRouter(prefix='/auth', tags=['auth'])
-redis = Redis()
+redis = Redis(host=REDIS_URL, port=REDIS_PORT)
 
 
 @router.post("/sign_up", response_model=User)

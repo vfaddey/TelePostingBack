@@ -1,7 +1,4 @@
 from datetime import timezone
-import stat
-
-from pandas import json_normalize
 from .schemas import Post, AddPost, UpdatePost
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorGridFSBucket
 from fastapi import UploadFile, HTTPException
@@ -11,9 +8,9 @@ from io import BytesIO
 
 
 class PostRepository:
-    def __init__(self, posts_collection: AsyncIOMotorCollection, grid_fs_buckect: AsyncIOMotorGridFSBucket) -> None:
+    def __init__(self, posts_collection: AsyncIOMotorCollection, grid_fs_bucket: AsyncIOMotorGridFSBucket) -> None:
         self.posts_collection = posts_collection
-        self.fs = grid_fs_buckect
+        self.fs = grid_fs_bucket
 
     async def add_post(self, add_post: AddPost) -> Post:
         button_list = []

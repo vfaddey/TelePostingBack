@@ -62,8 +62,6 @@ async def add_channel(add_channel: AddChannel = Body(...),
         return Channel(**channel_data)
     raise HTTPException(status_code=400, detail='Ошибка добавления в базу данных. Попробуйте еще раз позже')
 
-            
-
 
 @router.get('/', response_model=list[Channel])
 async def get_channels(current_user: User = Depends(get_current_user),
@@ -78,6 +76,23 @@ async def get_channels(current_user: User = Depends(get_current_user),
 
 
 @router.delete('/{username}')
-async def delete_channel(username: str):
-    pass 
+async def delete_channel(username: str,
+                         current_user: User = Depends(get_current_user),
+                         users_collection: AsyncIOMotorCollection = Depends(get_users_collection)):
+    user_id = ObjectId(current_user.id)
+    user_in_db = await users_collection.find_one({'_id': user_id})
+    user_channels = user_in_db.get('channels', [])
+    new_list = []
+    for index, channel in enumerate(user_channels):
+        print(channel, username)
+        if not (channel.get('username', None) == username):
+            new_list.append(channel)
+
+    result = await users_collection.update_one({'_id': user_id},
+                                               {
+                                                   '$set': {'channels': new_list}
+                                               })
+    if result.modified_count > 0:
+        return new_list
+    raise HTTPException(status_code=400, detail='Что-то пошло не так')
 

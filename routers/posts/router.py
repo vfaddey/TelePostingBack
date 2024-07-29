@@ -1,7 +1,6 @@
 from datetime import timedelta
 from io import BytesIO
 from typing import Optional
-from click import Option
 from fastapi.responses import StreamingResponse
 import pandas as pd
 from fastapi import File, UploadFile, HTTPException, APIRouter, Depends
@@ -17,16 +16,25 @@ from .post_repository import PostRepository
 
 from redis import Redis
 
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+MONGO_URL = os.getenv('MONGO_URL')
+REDIS_URL = os.getenv('REDIS_URL')
+REDIS_PORT = os.getenv('REDIS_PORT')
+
 router = APIRouter(prefix='/create_post', tags=['posts'])
 
-client = AsyncIOMotorClient("mongodb://localhost:27017")
+client = AsyncIOMotorClient(MONGO_URL)
 db = client.telegram_posts
 fs = AsyncIOMotorGridFSBucket(db)
 posts_collection = db.posts
 users_collection = db.users
 
 post_repository = PostRepository(posts_collection, fs)
-post_service = PostService(post_repository, Redis())
+post_service = PostService(post_repository, Redis(host=REDIS_URL, port=REDIS_PORT))
 
 
 @router.post("/", response_model=Post)

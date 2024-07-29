@@ -16,14 +16,9 @@ ALGORITHM = "RS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth/login')
 
-with open(r"C:\Users\vfaddey\PycharmProjects\telePosting\routers\auth\keys\private.pem") as f:
-    PRIVATE_KEY = f.read()
-
-with open(r"C:\Users\vfaddey\PycharmProjects\telePosting\routers\auth\keys\public.pem") as f:
-    PUBLIC_KEY = f.read()
-
+from .keys.keys import PUBLIC_KEY, PRIVATE_KEY
 
 
 async def authenticate_user(email: str,

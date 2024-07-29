@@ -3,16 +3,22 @@ from bson import ObjectId
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorGridFSBucket, AsyncIOMotorClient
 from routers.posts.schemas import Post
-
 import pymongo
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+MONGO_URL = os.getenv('MONGO_URL')
+MONGO_DB_NAME = os.getenv('MONGO_DB_NAME')
 
 
-client = pymongo.MongoClient('mongodb://localhost:27017')
-users_collection = client['telegram_posts']['users']
+client = pymongo.MongoClient(MONGO_URL)
+users_collection = client[MONGO_DB_NAME]['users']
 bot_manager = BotManager(users_collection)
 
 
-client = AsyncIOMotorClient("mongodb://localhost:27017")
+client = AsyncIOMotorClient(MONGO_URL)
 db = client.telegram_posts
 fs = AsyncIOMotorGridFSBucket(db)
 posts_collection = db.posts
