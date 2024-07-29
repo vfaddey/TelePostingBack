@@ -24,7 +24,6 @@ class BotManager:
 
                 process = multiprocessing.Process(target=self.bot_polling_process, args=(api_key, terminate_flag), daemon=True)
                 self.processes[api_key] = process
-                print('Запускаю процесс')
                 process.start()
             else:
                 raise InvalidBotKeyException('Неверный API ключ для бота')
@@ -49,6 +48,8 @@ class BotManager:
     def bot_polling_process(api_key, terminate_flag):
         bot = AsyncTeleBot(api_key)
         setup_handlers(bot)
+        print(api_key)
+        print(bot)
 
         async def polling():
             while not terminate_flag.is_set():
