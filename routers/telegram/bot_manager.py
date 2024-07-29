@@ -1,5 +1,3 @@
-from asyncio import sleep
-
 import aiohttp
 from telebot.async_telebot import AsyncTeleBot
 from telebot.asyncio_helper import ApiTelegramException
@@ -20,7 +18,6 @@ class BotManager:
             if await self._check_bot(api_key):
                 bot = AsyncTeleBot(api_key)
                 self.bots[api_key] = bot
-                await sleep(10)
 
                 terminate_flag = multiprocessing.Event()
                 self.terminate_flags[api_key] = terminate_flag
@@ -28,6 +25,7 @@ class BotManager:
                 process = multiprocessing.Process(target=self.bot_polling_process, args=(api_key, terminate_flag), daemon=True)
                 self.processes[api_key] = process
                 process.start()
+                print('Запускаю процесс')
             else:
                 raise InvalidBotKeyException('Неверный API ключ для бота')
         else:
@@ -58,8 +56,7 @@ class BotManager:
                     await bot.infinity_polling(timeout=10, request_timeout=90, interval=0)
                 except Exception as e:
                     print(f"Exception occurred: {e}")
-                    await bot.stop_polling()
-                    break
+                    continue
 
         asyncio.run(polling())
 
