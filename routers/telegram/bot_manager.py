@@ -1,4 +1,5 @@
 import aiohttp
+import requests
 from telebot.async_telebot import AsyncTeleBot
 from telebot.asyncio_helper import ApiTelegramException
 import multiprocessing
@@ -19,8 +20,6 @@ class BotManager:
             if await self._check_bot(api_key):
                 bot = AsyncTeleBot(api_key)
                 self.bots[api_key] = bot
-                if check_internet_connection():
-                    print('Интернет есть 1')
 
                 terminate_flag = multiprocessing.Event()
                 self.terminate_flags[api_key] = terminate_flag
@@ -53,14 +52,12 @@ class BotManager:
     def bot_polling_process(api_key, terminate_flag):
         bot = AsyncTeleBot(api_key)
         setup_handlers(bot)
-        if check_internet_connection():
-            print('Интернет есть 2')
 
         async def polling():
             while not terminate_flag.is_set():
                 try:
-                    if check_internet_connection():
-                        print('Интернет есть 3')
+                    if check_tg_bot(api_key):
+                        print('Проверил бота')
                     await bot.polling()
                 except Exception as e:
                     print(f"Exception occurred: {e}")
@@ -142,11 +139,13 @@ def setup_handlers(bot: AsyncTeleBot):
             await bot.answer_callback_query(call.id, guest_text, show_alert=True)
 
 
-def check_internet_connection():
+def check_tg_bot(api_key):
     try:
-        socket.create_connection(("api.telegram.com", 80))
+        print(f'Ищу бота {api_key}')
+        result = requests.get(f'https://api.telegram.org/bot{api_key}/getMe')
+        print(result.json())
         return True
-    except OSError:
+    except:
         return False
 
 
