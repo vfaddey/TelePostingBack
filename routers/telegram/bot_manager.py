@@ -1,10 +1,11 @@
 import aiohttp
-import requests
 from telebot.async_telebot import AsyncTeleBot
 from telebot.asyncio_helper import ApiTelegramException
 import multiprocessing
 import asyncio
-import socket
+import nest_asyncio
+
+nest_asyncio.apply()
 
 
 class BotManager:
@@ -56,8 +57,6 @@ class BotManager:
         async def polling():
             while not terminate_flag.is_set():
                 try:
-                    if check_tg_bot(api_key):
-                        print('Проверил бота')
                     await bot.polling()
                 except Exception as e:
                     print(f"Exception occurred: {e}")
@@ -65,6 +64,7 @@ class BotManager:
                     await asyncio.sleep(5)
                     continue
 
+        nest_asyncio.apply()
         asyncio.run(polling())
 
     async def load_all_bots(self):
@@ -137,17 +137,6 @@ def setup_handlers(bot: AsyncTeleBot):
             await bot.answer_callback_query(call.id, sub_text, show_alert=True)
         except ApiTelegramException:
             await bot.answer_callback_query(call.id, guest_text, show_alert=True)
-
-
-def check_tg_bot(api_key):
-    try:
-        print(f'Ищу бота {api_key}')
-        result = requests.get(f'https://api.telegram.org/bot{api_key}/getMe')
-        print(result.json())
-        return True
-    except:
-        return False
-
 
 
 class InvalidBotKeyException(Exception):
