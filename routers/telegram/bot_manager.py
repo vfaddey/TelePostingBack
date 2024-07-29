@@ -80,8 +80,7 @@ class BotManager:
     async def _check_bot(self, api_key):
         try:
             bot = AsyncTeleBot(api_key)
-            me = await bot.get_me()
-            print(me)
+            await bot.get_me()
             return True
         except ApiTelegramException:
             return False
@@ -111,7 +110,7 @@ def setup_handlers(bot: AsyncTeleBot):
         }
 
         async with aiohttp.ClientSession() as session:
-            async with session.post("http://localhost:8000/auth/confirm", json=data) as response:
+            async with session.post("http://backend:8000/auth/confirm", json=data) as response:
                 if response.status == 200:
                     await bot.send_message(chat_id, "Ваш аккаунт успешно подтвержден!")
                 else:
