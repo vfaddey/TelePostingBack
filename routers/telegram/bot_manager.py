@@ -46,8 +46,11 @@ class BotManager:
 
     @staticmethod
     def bot_polling_process(api_key, terminate_flag):
+        print('Вызвал1')
         bot = AsyncTeleBot(api_key)
+        print('Вызвал2')
         setup_handlers(bot)
+        print('Вызвал3')
 
         async def polling():
             while not terminate_flag.is_set():
