@@ -3,9 +3,6 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot.asyncio_helper import ApiTelegramException
 import multiprocessing
 import asyncio
-import nest_asyncio
-
-nest_asyncio.apply()
 
 
 class BotManager:
@@ -57,14 +54,13 @@ class BotManager:
         async def polling():
             while not terminate_flag.is_set():
                 try:
-                    await bot.polling()
+                    await bot.infinity_polling()
                 except Exception as e:
                     print(f"Exception occurred: {e}")
                     await bot.stop_polling()
                     await asyncio.sleep(5)
                     continue
 
-        nest_asyncio.apply()
         asyncio.run(polling())
 
     async def load_all_bots(self):
