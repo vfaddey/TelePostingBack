@@ -53,7 +53,7 @@ class BotManager:
             while not terminate_flag.is_set():
                 try:
                     print('запускаю')
-                    await bot.infinity_polling(timeout=10, request_timeout=90)
+                    await bot.infinity_polling(timeout=10, request_timeout=90, interval=0)
                 except Exception as e:
                     print(f"Exception occurred: {e}")
                     await bot.stop_polling()
