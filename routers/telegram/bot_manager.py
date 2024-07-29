@@ -59,6 +59,8 @@ class BotManager:
         async def polling():
             while not terminate_flag.is_set():
                 try:
+                    if check_internet_connection():
+                        print('Интернет есть 3')
                     await bot.infinity_polling(timeout=10, request_timeout=90, interval=0)
                 except Exception as e:
                     print(f"Exception occurred: {e}")
