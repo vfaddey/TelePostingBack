@@ -49,7 +49,7 @@ class BotManager:
         bot = AsyncTeleBot(api_key)
         setup_handlers(bot)
         print(api_key)
-        print(bot)
+        print(bot.get_me())
 
         async def polling():
             while not terminate_flag.is_set():
