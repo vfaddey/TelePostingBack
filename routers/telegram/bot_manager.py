@@ -60,7 +60,6 @@ class BotManager:
 
         asyncio.run(polling())
 
-
     async def load_all_bots(self):
         result = self.users_collection.find({
             "bots": {
@@ -81,7 +80,8 @@ class BotManager:
     async def _check_bot(self, api_key):
         try:
             bot = AsyncTeleBot(api_key)
-            await bot.get_me()
+            me = await bot.get_me()
+            print(me)
             return True
         except ApiTelegramException:
             return False
