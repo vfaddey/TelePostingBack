@@ -4,7 +4,7 @@ from .post_repository import PostRepository
 from redis import Redis
 import threading
 from datetime import datetime, timezone
-from .schemas import Post, AddPost
+from .schemas import Post, AddPost, UpdatePost
 from bson import ObjectId
 from routers.telegram.post_publisher import PostPublisher
 
@@ -13,7 +13,7 @@ class PostService:
     def __init__(self, post_repository: PostRepository, broker: Redis) -> None:
         self.post_repository = post_repository
         self.broker = broker
-        self.timers: dict[str, threading.Thread] = {}
+        self.timers: dict[str, threading.Thread : threading.Timer] = {}
         self.post_publisher = PostPublisher(post_repository)
         asyncio.create_task(self.load_scheduled_posts())
 
@@ -33,16 +33,44 @@ class PostService:
 
     async def delete_post(self, post_id, user_id):
         result = await self.post_repository.delete_post(post_id, user_id)
-        if result and post_id in self.timers:
+        if result and (post_id in self.timers):
             self.timers[post_id].cancel()
+        if result and (f'delete_{post_id}' in self.timers):
+            self.timers[f'delete_{post_id}'].cancel()
 
         if result:
             self.broker.delete(post_id)
+            self.broker.delete(f'delete:{post_id}')
             self.broker.zrem('post_schedule', post_id)
         return {'message': 'ok'}
 
-    async def update_post(self, post_id: str | ObjectId, post: Post):
-        pass
+    async def update_post(self, post: UpdatePost) -> Post:
+        new_post = await self.post_repository.update_post(post)
+        if new_post:
+            if new_post.publish_now:
+                self.timers[new_post.id].cancel()
+                await self.__cancel_tasks(new_post.id)
+                await self.publish_now(new_post.id, new_post.owner_id)
+            elif new_post.publish_time:
+                self.timers[new_post.id].cancel()
+                self.broker.zrem('post_schedule', new_post.id)
+                self.broker.set(new_post.id, new_post.publish_time.timestamp())
+                await self.schedule_post(post.id, post.owner_id, post.publish_time)
+            if new_post.delete_time:
+                self.timers[f'delete_{new_post.id}'].cancel()
+                self.broker.zrem('post_schedule', new_post.id)
+                self.broker.set(f'delete:{new_post.id}', new_post.delete_time.timestamp())
+                await self.schedule_delete(new_post.id, new_post.owner_id, new_post.delete_time)
+        return new_post
+
+    async def __cancel_tasks(self, post_id: str):
+        try:
+            self.broker.delete(post_id)
+            self.broker.delete(f'delete:{post_id}')
+            self.broker.zrem('post_schedule', post_id)
+            return True
+        except:
+            return False
 
     async def get_post(self, post_id: str | ObjectId) -> Post:
         if isinstance(post_id, ObjectId):

@@ -10,7 +10,7 @@ from starlette.responses import JSONResponse
 
 from routers.auth.models import User
 from routers.auth.service import get_current_user, get_current_verified_user
-from routers.posts.schemas import Post, AddPost, parse_post_data
+from routers.posts.schemas import Post, AddPost, parse_post_data, UpdatePost, parse_update_post_data
 
 from .post_service import PostService
 from .post_repository import PostRepository
@@ -104,6 +104,7 @@ async def delete_post(post_id: str,
     return result
 
  
-@router.put('/', response_model=Post)
-async def update_post(current_user: User = Depends(get_current_user)):
-    pass
+@router.put('/')
+async def update_post(update_post: UpdatePost = Depends(parse_update_post_data),
+                      current_user: User = Depends(get_current_user)):
+    return await post_service.update_post(update_post)

@@ -150,7 +150,9 @@ class PostPublisher:
                             if not channel.startswith('@'):
                                 channel = '@' + channel
                             if channel in user_channels_usernames:
-                                post_in_channel = await current_bot.send_media_group(channel, media=media_group, parse_mode='Markdown')
+                                post_in_channel = await current_bot.send_media_group(channel,
+                                                                                     media=media_group,
+                                                                                     parse_mode='Markdown')
                                 posts_in_channels.append(post_in_channel)
                         result = await self.__handle_result(post, posts_in_channels)
                         return result

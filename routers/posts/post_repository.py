@@ -2,7 +2,7 @@ from datetime import timezone
 import stat
 
 from pandas import json_normalize
-from .schemas import Post, AddPost
+from .schemas import Post, AddPost, UpdatePost
 from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorGridFSBucket
 from fastapi import UploadFile, HTTPException
 import json
@@ -31,7 +31,7 @@ class PostRepository:
                                     detail='Нельзя создавать кнопки, если в альбоме больше одной картинки')
 
         if add_post.publish_time and add_post.delete_time:
-            if add_post.delete_time > add_post.publish_time:
+            if add_post.delete_time < add_post.publish_time:
                 raise HTTPException(status_code=400,
                                     detail='Дата удаления не может быть раньше даты публикации')
 
@@ -121,8 +121,61 @@ class PostRepository:
             return Post(**result)
         raise HTTPException('Не удалось найти пост')
 
-    async def update_post(self, post_id, post: Post):
-        pass
+    async def update_post(self, post: UpdatePost) -> Post:
+        prev_post = await self.get_post(ObjectId(post.id))
+        if prev_post.posted:
+            raise HTTPException(status_code=400, detail='Пост уже опубликован в канале')
+        button_list = []
+        if post.buttons:
+            button_list = json.loads(post.buttons)
+
+        if post.photos:
+            if len(post.photos) > 1 and len(button_list) > 0:
+                raise HTTPException(status_code=400,
+                                    detail='Нельзя создавать кнопки, если в альбоме больше одной картинки')
+
+        if post.photo_urls:
+            if len(post.photo_urls) > 1 and len(button_list) > 0:
+                raise HTTPException(status_code=400,
+                                    detail='Нельзя создавать кнопки, если в альбоме больше одной картинки')
+
+        if post.publish_time and post.delete_time:
+            if post.delete_time < post.publish_time:
+                raise HTTPException(status_code=400,
+                                    detail='Дата удаления не может быть раньше даты публикации')
+
+        if (not post.publish_now) and (not post.publish_time):
+            raise HTTPException(status_code=400,
+                                detail='Необходимо выбрать время публикации')
+
+        if post.publish_time is not None:
+            if post.publish_time.tzinfo is None:
+                post.publish_time = post.publish_time.replace(tzinfo=timezone.utc)
+
+        channel_list = json.loads(post.channels)
+        if len(channel_list) == 0:
+            raise HTTPException('Нужно выбрать хотя бы один канал для публикации')
+
+        to_change = {
+            "text": post.text,
+            "photo_urls": post.photo_urls,
+            "buttons": button_list,
+            "publish_now": post.publish_now,
+            "publish_time": post.publish_time,
+            "delete_time": post.delete_time,
+            "channels": channel_list
+        }
+        new_post = Post(id=post.id,
+                        owner_id=prev_post.owner_id,
+                        photo_ids=prev_post.photo_ids,
+                        posted=prev_post.posted,
+                        **to_change)
+        result = await self.posts_collection.update_one({'_id': ObjectId(post.id)},
+                                                        {
+                                                            '$set': to_change
+                                                        }, upsert=True)
+        if result.modified_count > 0:
+            return new_post
 
     async def delete_post(self, post_id, user_id):
         if not self.posts_collection.find_one({"_id": ObjectId(post_id)}):
