@@ -27,7 +27,7 @@ async def add_bot(request: AddBot = Body(...),
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Такой бот уже существует')
 
     await bot_manager.add_bot(request.api_token)
-    await users_collection.update_one({'username': current_user.username},
+    result = await users_collection.update_one({'username': current_user.username},
                                       {
                                           '$push': {'bots': {
                                                   'api_token': request.api_token,
@@ -35,8 +35,9 @@ async def add_bot(request: AddBot = Body(...),
                                               }
                                           }
                                       }, upsert=True)
-
-    return request
+    if result.modified_count > 0:
+        return request
+    raise HTTPException(status_code=400, detail='Произошла ошибка при добавлении бота')
 
 
 @router.get('/')

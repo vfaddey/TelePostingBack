@@ -15,7 +15,8 @@ app.include_router(channels_router)
 
 origins = [
     "http://localhost:5173",
-    "http://127.0.0.1:5173"
+    "http://127.0.0.1:5173",
+    'http://93.183.68.122'
 ]
 
 app.add_middleware(
