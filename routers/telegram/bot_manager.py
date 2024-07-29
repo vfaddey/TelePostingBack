@@ -49,7 +49,8 @@ class BotManager:
         bot = AsyncTeleBot(api_key)
         setup_handlers(bot)
         print(api_key)
-        print(bot.get_me())
+        res = asyncio.run(bot.get_me())
+        print(res)
 
         async def polling():
             while not terminate_flag.is_set():
