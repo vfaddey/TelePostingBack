@@ -27,6 +27,7 @@ services:
       - MONGO_DB_NAME=telegram_posts
       - REDIS_URL=redis
       - REDIS_PORT=6379
+      - PYTHONUNBUFFERED=1
     ports:
       - "8000:8000"
     depends_on:
