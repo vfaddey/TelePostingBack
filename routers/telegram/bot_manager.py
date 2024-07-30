@@ -52,12 +52,9 @@ class BotManager:
     def bot_polling_process(api_key, terminate_flag):
         bot = AsyncTeleBot(api_key)
         setup_handlers(bot)
-
         async def polling():
             while not terminate_flag.is_set():
                 try:
-                    me = await bot.get_me()
-                    print(me)
                     await bot.infinity_polling()
                 except Exception as e:
                     print(f"Exception occurred: {e}")
