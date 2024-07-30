@@ -50,19 +50,16 @@ class BotManager:
 
     @staticmethod
     def bot_polling_process(api_key, terminate_flag):
-        async def polling():
-            bot = AsyncTeleBot(api_key)
-            setup_handlers(bot)
-            while not terminate_flag.is_set():
-                try:
-                    await bot.infinity_polling()
-                except Exception as e:
-                    print(f"Exception occurred: {e}")
-                    await bot.stop_polling()
-                    await asyncio.sleep(5)
-                    continue
+        from telebot import TeleBot
 
-        asyncio.run(polling())
+        bot = TeleBot(api_key)
+        setup_handlers(bot)
+        while not terminate_flag.is_set():
+            try:
+                bot.polling()
+            except Exception as e:
+                print(f"Exception occurred: {e}")
+                continue
 
     async def load_all_bots(self):
         result = self.users_collection.find({
