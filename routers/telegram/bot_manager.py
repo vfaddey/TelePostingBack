@@ -88,12 +88,14 @@ class BotManager:
 
 
 def setup_handlers(bot: AsyncTeleBot):
+    import requests
+
     @bot.message_handler(commands=['start'])
-    async def send_welcome(message):
-        await bot.reply_to(message, 'Привет! Я бот для отложенного постинга сообщений leetbot! Заходи на наш <a href="leetpost.ru">сайт</a>!', parse_mode='HTML')
+    def send_welcome(message):
+        bot.reply_to(message, 'Привет! Я бот для отложенного постинга сообщений leetbot! Заходи на наш <a href="leetpost.ru">сайт</a>!', parse_mode='HTML')
     
     @bot.message_handler(commands=['confirm'])
-    async def confirm_account(message):
+    def confirm_account(message):
         chat_id = message.chat.id
         user_id = message.from_user.id
         username = message.from_user.username
@@ -101,7 +103,7 @@ def setup_handlers(bot: AsyncTeleBot):
         try:
             temp_key = message.text.split()[1]
         except IndexError:
-            await bot.send_message(chat_id, "Пожалуйста, предоставьте временный ключ. Пример: /confirm <temp_key>")
+            bot.send_message(chat_id, "Пожалуйста, предоставьте временный ключ. Пример: /confirm <temp_key>")
             return
 
         data = {
@@ -110,27 +112,27 @@ def setup_handlers(bot: AsyncTeleBot):
             "username": username
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post("http://backend:8000/auth/confirm", json=data) as response:
-                if response.status == 200:
-                    await bot.send_message(chat_id, "Ваш аккаунт успешно подтвержден!")
-                else:
-                    await bot.send_message(chat_id, "Не удалось подтвердить аккаунт. Пожалуйста, проверьте временный ключ и попробуйте снова.")
+        url = "http://backend:8000/auth/confirm"
+        response = requests.post(url, json=data)
+        if response.status_code == 200:
+            bot.send_message(chat_id, "Ваш аккаунт успешно подтвержден!")
+        else:
+            bot.send_message(chat_id, "Не удалось подтвердить аккаунт. Пожалуйста, проверьте временный ключ и попробуйте снова.")
 
     @bot.message_handler(func=lambda message: True)
-    async def echo_all(message):
-        await bot.reply_to(message, message.text)
+    def echo_all(message):
+        bot.reply_to(message, message.text)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith('button'))
-    async def handle_button_callback(call):
+    def handle_button_callback(call):
         answers = call.data.split('_')[1:]
         sub_text = answers[0]
         guest_text = answers[1]
         try:
-            await bot.get_chat_member(call.message.chat.id, call.from_user.id)
-            await bot.answer_callback_query(call.id, sub_text, show_alert=True)
+            bot.get_chat_member(call.message.chat.id, call.from_user.id)
+            bot.answer_callback_query(call.id, sub_text, show_alert=True)
         except ApiTelegramException:
-            await bot.answer_callback_query(call.id, guest_text, show_alert=True)
+            bot.answer_callback_query(call.id, guest_text, show_alert=True)
 
 
 class InvalidBotKeyException(Exception):
