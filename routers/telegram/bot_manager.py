@@ -1,3 +1,5 @@
+from re import A
+from traceback import print_tb
 import aiohttp
 from telebot.async_telebot import AsyncTeleBot
 from telebot.asyncio_helper import ApiTelegramException
@@ -54,6 +56,8 @@ class BotManager:
         async def polling():
             while not terminate_flag.is_set():
                 try:
+                    me = await bot.get_me()
+                    print(me)
                     await bot.infinity_polling()
                 except Exception as e:
                     print(f"Exception occurred: {e}")
